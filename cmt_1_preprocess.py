@@ -1,14 +1,17 @@
-"""
-* 코드 파일 이름: cmt_1_preprocess.py
-* 코드 작성자: 박동연, 강소정, 김유진
-* 코드 설명: 동영상 강의 해설 파일을 생성하기 위한 전처리 파일 생성
-* 코드 최종 수정일: 2021/06/27 (박동연)
-* 문의 메일: yeon0729@sookmyung.ac.kr
-"""
+# """
+# * 코드 파일 이름: cmt_1_preprocess.py
+# * 코드 작성자: 박동연, 강소정, 김유진
+# * 코드 설명: 동영상 강의 해설 파일을 생성하기 위한 전처리 파일 생성
+# * 코드 최종 수정일: 2021/07/28 (박동연)
+# * 문의 메일: yeon0729@sookmyung.ac.kr
+# """
 
 # 패키지 및 라이브러리 호출
 import imagehash
 import jellyfish
+import cv2
+from skimage.measure import compare_ssim
+
 from PIL import Image
 import sys
 import time
@@ -47,15 +50,15 @@ from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextContainer
 
 # 경로 설정 (경로 내에 한글 디렉토리 및 한글 파일이 있으면 제대로 동작하지 않음 유의 !!!!!)
-default_path = "UIUX/"
+default_path = "./UIUX/"
 pdf_path = default_path + "lecture_doc.pdf"
 video_path = default_path + "lecture_video.mp4"
 audio_path = default_path + "lecture_audio.mp3"
 capture_path = default_path + "capture/"
+capture_FA_path = default_path + "capture_FA/"
 slide_path = default_path + "slide/"
 txt_path = default_path + "txt/"
 tts_path = default_path + "tts/"
-
 mix_path = default_path + "mix/"
 lec_path = default_path + "lec/"
 img_path = default_path + "img/"
@@ -64,22 +67,26 @@ img_path = default_path + "img/"
 df = pd.DataFrame()
 save_path = default_path + "transform_timeline_result.csv"
 
-# 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수
+
+# 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수 (최대 9999장까지 가능)
 def set_Filenum_of_Name(filenum):
     fileName = ""
 
     if (filenum < 10):  # 파일번호가 한자리일때
-        fileName = "00" + str(filenum)
+        fileName = "000" + str(filenum)
     elif (filenum >= 10 and filenum < 100):  # 파일번호가 두자리일때
-        fileName = "0" + str(filenum)
+        fileName = "00" + str(filenum)
     elif (filenum >= 100 and filenum < 1000):  # 파일번호가 세자리일때
+        fileName = "0" + str(filenum)
+    elif (filenum >= 1000 and filenum < 10000):  # 파일번호가 네자리일때
         fileName = str(filenum)
     else:
-        sys.exit(">>> 파일이 너무 큽니다 - 999장 이상")
+        sys.exit(">>> 파일이 너무 큽니다 - 9999장 이상")
 
     return fileName
 
-#pdf 파일을 jpg 파일로 변환하는 함수
+
+# pdf 파일을 jpg 파일로 변환하는 함수
 def pdf2jpg():  # pdf 파일을 기반으로 이미지(jpg)를 생성하는 함수
 
     print("\n[PDF2IMG 시작] PDF2JPG 이미지 변환을 시작합니다")
@@ -98,6 +105,7 @@ def pdf2jpg():  # pdf 파일을 기반으로 이미지(jpg)를 생성하는 함�
         page.save(slide_path + "slide_" + set_Filenum_of_Name(i + 1) + ".jpg", "JPEG")
 
     print("[PDF2IMG 종료] PDF2JPG 이미지 변환을 종료합니다\n")
+
 
 # 동영상 내 화면 전환이 발생하는 시점을 기준으로 동영상 캡처(추출)을 하는 함수
 def capture_video():
@@ -138,6 +146,7 @@ def capture_video():
     print("[전환장면 캡처 종료] 영상 내 전환 시점을 기준으로 이미지 추출을 종료합니다\n")
     return captured_timeline_list
 
+
 # pdf 파일에 있는 텍스트를 슬라이드 별로 뽑아내는 함수
 def pdf2txt():
     print("\n[PDF to TXT 변환 시작] 슬라이드 이미지를 텍스트로 변환을 시작합니다")
@@ -149,81 +158,122 @@ def pdf2txt():
     except OSError:
         print('Error: Creating directory. ' + txt_path)  # 디렉토리 생성 오류
 
+    textt = ""
+    textt1 = ""
+    txt_res = ""
+    table_final_text = []
+    text_com = ""
+    table_list = []
+    a = 1
+    b = 1
+
     Pdf = pdfplumber.open(pdf_path)
 
     for page_idx, page in enumerate(Pdf.pages):
         txtFile = open(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", "w", -1, "utf-8")  # 번역한 내용을 저장할 텍스트 파일
 
         txtFile.write(str(page_idx + 1) + "번 슬라이드 해설 시작" + "\n" + "\n")
-        result = page.extract_text()
 
-        imgcaption = imgExtract(page_idx)
+        # 텍스트->table
+        result = page.extract_text()
+        text = str(page.extract_text())
+        # text = text.replace('\n'," ")
+        text = re.sub('\\n+', '\n', text)
+        text = text + "\n"
+
+        for table in page.extract_tables():
+            for row in table:
+                for column in range(0, len(row)):
+                    text_com = text_com + row[column] + " "
+                    textt = str(a) + "행"
+                    textt1 = " " + str(b) + "열 " + row[column] + "\n"
+                    txt_res = txt_res + textt + textt1
+
+                    b = b + 1
+                b = 1
+                a = a + 1
+                text_com = text_com[:-1]
+                text_com = text_com + "\n"
+            table_new = '표 시작\n' + txt_res + '표 끝 \n'
+            table_final_text.append(table_new)
+            table_list.append(text_com)
+            # print(text_com)
+            txt_res = ""
+            text_com = ""
+            a = 1
+            b = 1
+
+        # 공백 O
+        for i, j in zip(table_list, table_final_text):
+            text = text.replace(i, j)
+
+        imgcaption = imgExtract(page_idx, text)
 
         if (imgcaption == "이미지 없음"):
             print("이미지 없음")
-            txtFile.write(result + "\n")
+            txtFile.write(text + "\n")
         else:
-            imgcaption = " ".join(imgcaption)
-            txtFile.write(result + imgcaption + "\n")
-
-        txtFile.write(str(page_idx + 1) + "번 슬라이드 해설 끝")
+            imgcaption = "".join(imgcaption)
+            txtFile.write(text + imgcaption + "\n")
 
         txtFile.close()
 
         # 텍스트 변환 필터링
-        txtfilter_open = open(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", "r", -1, "utf-8")
-        pp = re.compile("[ㄱ-ㅣ가-힣A-Za-z0-9-+=.()~\s]")
-        txtfilter1 = txtfilter_open.read()
-        txtfilter1 = pp.findall(txtfilter1)
-        txtfilter1 = ''.join(txtfilter1)
-        txtfilter2 = re.sub('\\n+', '\n', txtfilter1)
-        textfilter = re.sub('', '', txtfilter2)
-        txtfilter_out = open(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", "w", -1, "utf-8")
-        txtfilter_out.write(textfilter)
+        NLP(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt")
+
+        # 이미지 캡션 위치 조정
+        modifytxt(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", page_idx)
 
         print(">>>", page_idx + 1, "번째 PDF 슬라이드 텍스트 변환 완료")
-
-    """for page_idx, page_layout in enumerate(extract_pages(pdf_path)):
-
-        txtFile = open(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", "w", -1, "utf-8")  # 번역한 내용을 저장할 텍스트 파일
-        txtFile.write(str(page_idx + 1) + "번 슬라이드 해설 시작" + "\n" + "\n")
-
-        result = ""
-        for element in page_layout:
-            if isinstance(element, LTTextContainer):
-                result += element.get_text() + "\n"
-
-        imgcaption = imgExtract(page_idx)
-
-        if(imgcaption=="이미지 없음"):
-            print("이미지 없음")
-            txtFile.write(result + "\n")
-        else:
-            imgcaption = " ".join(imgcaption)
-            txtFile.write(result + imgcaption + "\n")
-
-        txtFile.write(str(page_idx + 1) + "번 슬라이드 해설 끝")
-
-        txtFile.close()
-
-        # 텍스트 변환 필터링
-        txtfilter_open = open(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", "r", -1, "utf-8")
-        pp = re.compile("[ㄱ-ㅣ가-힣A-Za-z0-9-+=.()~\s]")
-        txtfilter1 = txtfilter_open.read()
-        txtfilter1 = pp.findall(txtfilter1)
-        txtfilter1 = ''.join(txtfilter1)
-        txtfilter2 = re.sub('\\n+', '\n', txtfilter1)
-        textfilter = re.sub('', '', txtfilter2)
-        txtfilter_out = open(txt_path + set_Filenum_of_Name(page_idx + 1) + ".txt", "w", -1, "utf-8")
-        txtfilter_out.write(textfilter)
-
-        print(">>>", page_idx + 1, "번째 PDF 슬라이드 텍스트 변환 완료")"""
 
     Pdf.close()
     print("[PDF to TXT 변환 종료] 슬라이드 이미지를 텍스트로 변환을 종료합니다\n")
 
+
+# 텍스트 변환 필터링 함수
+def NLP(filename):
+    txtfilter_open = open(filename, "r", -1, "utf-8")
+    pp = re.compile("[ㄱ-ㅣ가-힣A-Za-z0-9-+.()~\s]")
+    txtfilter1 = txtfilter_open.read()
+    txtfilter1 = pp.findall(txtfilter1)
+    txtfilter1 = ''.join(txtfilter1)
+    txtfilter2 = re.sub('\\n+', '\n', txtfilter1)
+    textfilter = re.sub('', '', txtfilter2)
+    txtfilter_out = open(filename, "w", -1, "utf-8")
+    txtfilter_out.write(textfilter)
+    txtfilter_out.close()
+
+
+# 이미지 캡션 위치 조정하는 함수
+def modifytxt(filename, page_idx):
+    result = []
+    text = []
+    string = '그림'
+
+    with open(filename, "r", -1, "utf-8") as file:
+        for line in file:
+            if line.startswith(" ") and line[1:].startswith(string):
+                line = line[1:]  # 맨 앞 공백 제거
+                result.append(line)
+                line.replace(line, " ")
+            elif line.startswith(string):
+                result.append(line)
+                line.replace(line, " ")
+            else:
+                text.append(line)
+        result.sort()  # 그림 순서 정렬
+
+    with open(filename, "w", -1, "utf-8") as outfile:
+        for j in range(0, len(text)):
+            outfile.write(str(text[j]))
+        for j in range(0, len(result)):
+            outfile.write(str(result[j]))
+        outfile.write(str(page_idx + 1) + "번 슬라이드 해설 끝\n")
+    outfile.close()
+
+
 # pdf 파일에 이미지가 있는지 판단하는 함수
-def imgExtract(page_index):  # 이미지 추출 함수
+def imgExtract(page_index, result):  # 이미지 추출 함수
     # open the file
     pdf_file = fitz.open(pdf_path)
 
@@ -255,28 +305,45 @@ def imgExtract(page_index):  # 이미지 추출 함수
             # load it to PIL
             image = Image.open(io.BytesIO(image_bytes))
 
-            if (image.size[0]<=50 or image.size[1]<=50 or image.size[0] >= 10000 or image.size[1] >= 10000):
+            if (image.size[0] <= 50 or image.size[1] <= 50 or image.size[0] >= 10000 or image.size[1] >= 10000):
 
                 if image.size[0] < image.size[1]:
-                    new_width  = 60
+                    new_width = 60
                     new_height = int(new_width * image.size[1] / image.size[0])
 
                 else:
                     new_height = 60
-                    new_width  = int(new_height * image.size[0] / image.size[1])
+                    new_width = int(new_height * image.size[0] / image.size[1])
 
-                resize_image = image.resize((new_width, new_height), Image.ANTIALIAS)
-                imgfileName = "slide_" + set_Filenum_of_Name(page_index+1) +"img_"+ set_Filenum_of_Name(image_index)+ ".jpg"
-                resize_image.save(img_path+imgfileName)
+                try:
+                    resize_image = image.resize((new_width, new_height), Image.ANTIALIAS)
+                    imgfileName = "slide_" + set_Filenum_of_Name(page_index + 1) + "img_" + set_Filenum_of_Name(
+                        image_index) + ".jpg"
 
-            else :
-                imgfileName = "slide_" + set_Filenum_of_Name(page_index+1) +"img_"+ set_Filenum_of_Name(image_index)+ ".jpg"
-                image.save(open(img_path+imgfileName, "wb"))
+                except OSError:
+                    pass
+                    resize_image.save(img_path + imgfileName)
+                    resize_image = resize_image.convert("RGB")
+                    resize_image.save(img_path + imgfileName)
 
-            image_caption = imgCaption(imgfileName)      # 이미지 캡션 함수 호출
-            caption_list_eng.append(image_caption)
-            image_caption = str(image_index) + "번째 이미지 " + eng2Kor(image_caption) + "\n"
-            caption_list_kor.append(image_caption)
+            else:
+                try:
+                    imgfileName = "slide_" + set_Filenum_of_Name(page_index + 1) + "img_" + set_Filenum_of_Name(
+                        image_index) + ".jpg"
+                except OSError:
+                    pass
+                image = image.convert("RGB")
+                image.save(open(img_path + imgfileName, "wb"))
+
+            if (result.find('그림 ' + str(image_index)) != -1):
+                os.remove(img_path + imgfileName)
+                print("그림 " + str(image_index) + " 삭제 완료")
+
+            else:
+                image_caption = imgCaption(imgfileName)  # 이미지 캡션 함수 호출
+                caption_list_eng.append(image_caption)
+                image_caption = "그림 " + str(image_index) + " " + eng2Kor(image_caption) + "\n"
+                caption_list_kor.append(image_caption)
 
         print("이미지캡션 영어:", caption_list_eng)
         print("이미지캡션 한국어:", caption_list_kor)
@@ -286,6 +353,7 @@ def imgExtract(page_index):  # 이미지 추출 함수
         caption_list_kor = "이미지 없음"
 
     return caption_list_kor
+
 
 # 이미지의 캡션 자막(영어)를 생성하는 함수
 def imgCaption(imgfileName):  # 이미지 캡션 함수
@@ -308,114 +376,110 @@ def imgCaption(imgfileName):  # 이미지 캡션 함수
 
     return image_caption
 
+
 # 영어 문자열을 한글 문자열로 번역하는 함수
 def eng2Kor(image_caption):
     translator = Translator()
     trans1 = translator.translate(image_caption, src='en', dest='ko')
     return trans1.text
 
-# 두 문자열 간 자카드 유사도 계산
-def JaccardSimilarity(input_hash1, input_hash2):
-    list_inp1 = list(input_hash1)
-    list_inp2 = list(input_hash2)
-    hash_union = set(list_inp1).union(set(list_inp2))
-    hash_intersection = set(list_inp1).intersection(set(list_inp2))
-    # print(hash_union)
-    # print(hash_intersection)
-    return len(hash_intersection) / len(hash_union)
+# 캡처 이미지 중 최초 등장 시점을 파악하여 필터링하는 함수
+def captureFiltering():
+    
+    print("\n[이미지 유사도 계산 시작] 캡처 화면 필터링을 시작합니다")
+    captureList = os.listdir(capture_path)
+    captureList = [capture_file for capture_file in captureList if capture_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
+    captureList.sort()
+    print(">>> 캡쳐 파일 목록:", captureList)
 
-# Perceptive Hash 변환을 통한 jaro 유사도 계산
-def calImgPerHashSim(slide, capture):
-    slide = slide_path + slide
-    capture = capture_path + capture
+    capture_img_load = []  # 이미지 파일 리스트를 사용하여 캡처 이미지 불러오기
+    for i in captureList:
+        img = cv2.imread(capture_path + i)  # 캡처 이미지
+        capture_img_load.append(img)
 
-    # 해시값 변환 (Perceptive Hash)
-    # Perceptive Hash는 낮은 주파수 영역을 추출하여 유의미한 값으로 이미지 압축
-    slide_hash = imagehash.phash(Image.open(slide))
-    capture_hash = imagehash.phash(Image.open(capture))
+    # 유사도 측정
+    selected_idx = []
+    for idx in range(0, len(capture_img_load) - 1):
+        (score, diff) = compare_ssim(capture_img_load[idx], capture_img_load[idx + 1], full=True, multichannel=True)
+        print(idx + 1, "vs", idx + 2, "Similarity:", score)
 
-    # 자카드 유사도 계산
-    img_hash_distance = JaccardSimilarity(str(slide_hash), str(capture_hash))
+        # 최초 등장 시점의 인덱스 저장
+        if idx == 0:  # 가장 첫 번째 슬라이드 최초 등장시점 저장
+            selected_idx.append(idx)
+        if score <= 0.95:  # 두 번째 슬라이드부터 최초 등장 시점 저장
+            selected_idx.append(idx + 1)
 
-    # print(img_hash_distance)
-    return img_hash_distance
+        # 디렉토리 유무 검사 및 디렉토리 생성
+        try:
+            if not os.path.exists(capture_FA_path):  # 디렉토리 없을 시 생성
+                os.makedirs(capture_FA_path)
+        except OSError:
+            print('Error: Creating directory. ' + capture_FA_path)  # 디렉토리 생성 오류
 
-# Difference Hash 변환을 통한 유사도 계산
-def calImgDifHashSim(slide, capture):
-    slide = slide_path + slide
-    capture = capture_path + capture
+    # 최초 등장 시점의 인덱스에 맞는 이미지 파일을 복사
+    for idx in selected_idx:
+        shutil.copy2(capture_path + captureList[idx], capture_FA_path + captureList[idx])
+        print(">>> >>>", "'" + captureList[idx] + "'", " 파일 복사 완료")
 
-    # 해시값 변환 (Difference Hash)
-    # Difference Hash는 정해진 사이즈로 압축한 이미지의 인전한 픽셀 값의 크기 비교를 평가
-    slide_hash = imagehash.dhash(Image.open(slide))
-    capture_hash = imagehash.dhash(Image.open(capture))
+    print("\n[이미지 유사도 계산 시작] 캡처 화면 필터링을 종료합니다")
 
-    # print(slide_hash)
-    # print(capture_hash)
+    return selected_idx
 
-    # 해밍 유사도 계산
-    # img_hash_distance = distance.jaccard(slide_hash, capture_hash)
-    img_hash_distance = jellyfish.jaro_distance(str(slide_hash), str(capture_hash))
-
-    return img_hash_distance
 
 # 동영상 캡처 이미지와 원본 슬라이드 이미지 간 유사도를 계산하는 함수
-def calSim_CapNSlide():
-    print("\n[이미지 유사도 계산 시작] 캡쳐 화면과 슬라이드 이미지의 유사도 계산을 시작합니다")
+def orbCompare():
+    print("\n[알맞는 슬라이드 찾기 시작] 캡쳐 화면과 슬라이드 이미지의 유사도 계산을 시작합니다")
 
     slideList = os.listdir(slide_path)
     slideList = [slide_file for slide_file in slideList if slide_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
     slideList.sort()
     print(">>> 슬라이드 파일 목록:", slideList)
 
-    captureList = os.listdir(capture_path)
-    captureList = [capture_file for capture_file in captureList if capture_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
-    captureList.sort()
-    print(">>> 캡쳐 파일 목록:", captureList)
+    capture_FA_List = os.listdir(capture_FA_path)
+    capture_FA_List = [capture_file for capture_file in capture_FA_List if capture_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
+    capture_FA_List.sort()
+    print(">>> 캡쳐 파일 목록:", capture_FA_List)
 
-    final_list = []
-    for slide in slideList:
-        first_candidate_list = []
-        second_candidate_list = []
+    orb = cv2.ORB_create()
 
-        # 강의 슬라이드와 동영상 캡쳐본 간 해시값 계산
-        for capture in captureList:
-            img_hash_distance = calImgPerHashSim(slide, capture)
-            first_candidate_list.append(img_hash_distance)
-            print(">>> >>>", slide, "vs", capture, ":", img_hash_distance)
+    txtFile = open(default_path + "OCR_result.txt", "w", -1, "utf-8")  # 번역한 내용을 저장할 텍스트 파일
+    selected_slide_list = []
 
-        first_max_value = max(first_candidate_list)
+    for capture in capture_FA_List:
 
-        tmp_list = []
-        for idx, v in enumerate(first_candidate_list):
-            if v == first_max_value:
-                # tmp_list.append(captureList[idx])
-                tmp_list.append(idx)
+        capture_img = cv2.imread(capture_FA_path + capture, None)
+        kp_c, des_c = orb.detectAndCompute(capture_img, None)
 
-        print(slide, tmp_list)
+        match_list = []
+        for slide in slideList:
+            slide_img = cv2.imread(slide_path + slide, None)
+            kp_s, des_s = orb.detectAndCompute(slide_img, None)
 
-        # 중복되는 최대 유사도 값이 2개 이상일 때 해싱 한 번 더 계산
-        print(">>> 최대 유사도 값을 가지는 요소 개수:", len(tmp_list))
-        if len(tmp_list) >= 2:
-            for idx in tmp_list:
-                img_hash_distance = calImgDifHashSim(slide, captureList[idx])
-                second_candidate_list.append(img_hash_distance)
-                print(">>> >>> >>>", slide, "vs", idx, ":", img_hash_distance)
+            bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck = True)
 
-            max_idx = second_candidate_list.index(max(second_candidate_list))  # 최대 유사도 값 중 첫 번재 등장 인덱스
-            final_list.append(tmp_list[max_idx])  # 해당 인덱스의 이미지 파일명 저장
+            matches = bf.match(des_c, des_s)
+            matches = sorted(matches, key=lambda x:x.distance)
 
-        else:
-            final_list.append(tmp_list[0])
+            print(">>>", capture, "vs", slide, ":", len(matches))
+            match_list.append(len(matches))
 
-    print(final_list)
-    print("[이미지 유사도 계산 종료] 캡쳐 화면과 슬라이드 이미지의 유사도 계산을 종료합니다\n")
+        print("*" * 50)
+        max_idx = match_list.index(max(match_list))
+        result = ">>> " + str(capture) + " - " + str(slideList[max_idx]) + " : " + str(match_list[max_idx])
+        print(result)
+        print("*" * 50)
 
-    return final_list
+        txtFile.write(result + "\n")
+        selected_slide_list.append(slideList[max_idx])
+
+    txtFile.close()
+    print("[알맞는 슬라이드 찾기 종료] 캡쳐 화면과 슬라이드 이미지의 유사도 계산을 종료합니다\n")
+    
+    return selected_slide_list
+
 
 # 텍스트 파일을 기반으로 TTS 음성파일을 생성하는 함수
 def txt2TTS():
-
     print("\n[TTS 시작] TTS 변환을 시작합니다")
     txt_list = os.listdir(txt_path)
     txt_list = [txt_file for txt_file in txt_list if txt_file.endswith(".txt")]  # jpg로 끝나는 것만 가져오기
@@ -441,6 +505,7 @@ def txt2TTS():
         print(set_Filenum_of_Name(idx + 1) + " MP3 file saved!")
 
     print("[TTS 종료] TTS 변환을 종료합니다\n")
+
 
 # 동영상 내 화면 전환이 발생하는 시점을 기준으로 원본 오디오 파일을 자르는 함수
 def cutLectureMp3():
@@ -510,10 +575,9 @@ if __name__ == '__main__':
 
     # 슬라이드와 캡처본 간 이미지 유사도 계산
     tmp_start = time.time()
-    tf_timeline_idx = calSim_CapNSlide()
+    tf_timeline_idx = captureFiltering() #캡처 이미지 필터링
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
-    time_list.append(tmp_times[0])
 
     tf_timeline_list = []
     for i, idx_val in enumerate(tf_timeline_idx):
@@ -522,7 +586,12 @@ if __name__ == '__main__':
               round(captured_timeline_list[idx_val] % 60), "초")
 
     df['time'] = tf_timeline_list
+
+    selected_slide_list = orbCompare()
+    df['slide'] = selected_slide_list# 해당 전환 시점에 등장한 슬라이드 기입
+
     df.to_csv(save_path, mode='w')
+    time_list.append(tmp_times[0])
 
     # txt 2 TTS 파일 생성
     tmp_start = time.time()
