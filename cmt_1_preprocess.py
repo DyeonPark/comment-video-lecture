@@ -2,7 +2,7 @@
 # * 코드 파일 이름: cmt_1_preprocess.py
 # * 코드 작성자: 박동연, 강소정, 김유진
 # * 코드 설명: 동영상 강의 해설 파일을 생성하기 위한 전처리 파일 생성
-# * 코드 최종 수정일: 2021/07/30 (박동연)
+# * 코드 최종 수정일: 2021/08/05 (박동연)
 # * 문의 메일: yeon0729@sookmyung.ac.kr
 # """
 
@@ -44,7 +44,6 @@ from scenedetect import VideoManager, SceneManager, StatsManager
 from scenedetect.detectors import ContentDetector
 from scenedetect.scene_manager import save_images, write_scene_list_html
 
-
 # 경로 설정 (경로 내에 한글 디렉토리 및 한글 파일이 있으면 제대로 동작하지 않음 유의 !!!!!)
 default_path = "UIUX/"
 pdf_path = default_path + "lecture_doc.pdf"
@@ -62,7 +61,6 @@ img_path = default_path + "img/"
 # 최종 출력 파일
 df = pd.DataFrame()
 save_path = default_path + "transform_timeline_result.csv"
-
 
 # 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수 (최대 9999장까지 가능)
 def set_Filenum_of_Name(filenum):
@@ -238,7 +236,6 @@ def NLP(filename):
     txtfilter_out = open(filename, "w", -1, "utf-8")
     txtfilter_out.write(textfilter)
     txtfilter_out.close()
-
 
 # 이미지 캡션 위치 조정하는 함수
 def modifytxt(filename, page_idx):
