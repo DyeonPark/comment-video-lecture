@@ -6,11 +6,11 @@ from django.conf.urls.static import static
 app_name = "upload"
 
 urlpatterns = [
-    path("", views.uploadFile, name = "uploadFile"),
+    path("", views.upload_files, name = "upload_files"),
 ]
 
 if settings.DEBUG: 
     urlpatterns += static(
         settings.MEDIA_URL, 
-        document_root = settings.MEDIA_ROOT
+        document_root=settings.MEDIA_ROOT
     )

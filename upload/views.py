@@ -1,11 +1,9 @@
-import os
-import shutil
-import datetime
-from . import models
 from upload.models import Document
 from django.shortcuts import render
+from upload.cmt_1_preprocess import execute_preprocess
+from upload.cmt_2_mix import execute_mix
 
-def uploadFile(request):
+def upload_files(request):
     if request.method == "POST":
 
         # Fetching the form data
@@ -13,49 +11,23 @@ def uploadFile(request):
         videoFile = request.FILES["videoFile"]
         docFile = request.FILES["docFile"]
 
-        new_path = getTime()
-
-        # Saving the information in the database
-        document = models.Document(
-            title = fileTitle,
-            videoFile = videoFile,
-            docFile = docFile,
-            dateTiemOfUpload = new_path
+        document = Document.objects.create(
+                title=fileTitle,
+                videoFile=videoFile,
+                docFile=docFile,
         )
-        document.save()
 
-        # 사용자가 업로드한 파일 목록 불러오기
-        original_path = "D:/commentor/media/Uploaded_Files/"
-        files = os.listdir(original_path)
-        
-        # 디렉토리 생성
-        new_path = "D:/commentor/media/" + new_path + "/"        
-        createFolder(new_path)
+        # 파일 저장경로(path) 불러오기
+        path = document.docFile.path
+        print("document.docFile.path: ", path)
+        path = path[:-15]
 
-        # 파일 이동
-        for file in files:
-            shutil.move(original_path + file, new_path + file)
+        # commentor 서비스 실행
+        execute_preprocess(path)
+        execute_mix(path)
 
-        # 모델 내 path(url) 수정
-        obj = Document.objects.get(title = fileTitle)
-        obj.videoFile = new_path + "lecture_video.mp4"
-        obj.docFile = new_path + "lecture_doc.pdf"
-        obj.save()
+    documents = Document.objects.all()
 
-    documents = models.Document.objects.all()
-
-    return render(request, "upload/upload_file.html", context = {
+    return render(request, "upload/upload_file.html", context={
         "files": documents
     })
-
-def createFolder(dir):
-    try:
-        if not os.path.exists(dir):
-            os.makedirs(dir)
-    except OSError:
-        print ('Error: Creating directory. ' +  dir)
-
-def getTime():
-    now = datetime.datetime.now()
-    nowDatetime = now.strftime('%Y-%m-%d %H-%M-%S')
-    return nowDatetime
