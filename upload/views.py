@@ -1,4 +1,5 @@
 from upload.models import Document
+from onlineclass.models import Helper, ImageCapture
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.template import loader
@@ -36,6 +37,18 @@ def upload_files(request):
                 # commenter 서비스 실행
                 execute_preprocess(path)
                 execute_mix(path)
+
+                helper = Helper.objects.create(
+                    doc_id=document,
+                    helper_audio=path + "mix\\mix.mp3",
+                    helper_txt=path + "txt\\",
+                    helper_csv=path + "transform_timeline_result.csv"
+                )
+
+                imgfile = ImageCapture.objects.create(
+                    helper_id=helper,
+                    img_file=path + "capture_FA\\"
+                )
 
             documents = Document.objects.all()
             return render(request, "upload/upload_file.html", context={

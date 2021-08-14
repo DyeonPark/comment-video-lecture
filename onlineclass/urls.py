@@ -6,5 +6,5 @@ from django.conf.urls.static import static
 app_name = "onlineclass"
 
 urlpatterns = [
-    path("commentor/", views.execute_commentor, name="execute_commentor"),
+    path("commentor/<int:doc_id>/", views.execute_commentor, name="execute_commentor"),
 ]
