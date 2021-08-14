@@ -9,11 +9,11 @@ def execute_commentor(request, doc_id):
 
     doc = Document.objects.get(id=doc_id)
     helper = Helper.objects.get(doc_id=doc_id)
-    imgfile = ImageCapture.objects.get(helper_id=helper.helper_id)
+    #imgfile = ImageCapture.objects.get(helper_id=helper.helper_id)
 
     context = {
         "doc": doc,
         "helper": helper,
-        "imgfile": imgfile
+        #"imgfile": imgfile
     }
     return HttpResponse(template.render(context, request))

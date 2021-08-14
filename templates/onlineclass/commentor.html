@@ -55,24 +55,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>title</title>
-<!-- Bootstrap cdn 설정 -->
-<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <title>title</title>
+    <!-- Bootstrap cdn 설정 -->
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 </head>
 <body>
     <script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 
+    <!--csv 파일 선택-->
     <input type="file" id="id_file_upload" onchange="upload(event)"/>
 
+    <!--슬라이드 목록 리스트가 생성될 공간-->
     <ul id='fruits' tabindex="1"></ul>
 
+    <!--재생 옵션-->
     <form method="get" action="form-action.html">
         <label><input type="checkbox" name="option" value="전체 설명 생략"> 전체 설명 생략</label>
     </form>
-    <!-- audio와 video 설정 -->
 
-    <h1>{{ doc.videoFile }}</h1>
-    <video src={{ doc.videoFile }} id="myVideo" width='450' height='360'
+    <!-- audio와 video 설정 -->
+    <video src={{ helper.helper_audio.url }} id="myVideo" width='450' height='360'
     poster='C:\Users\SM-PC\Desktop\Commentor\UIUX\capture_FA\003.jpg' controls autoplay loop preload></video>
     <br />
 
