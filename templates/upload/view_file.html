@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+{% load static %}
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Django File Upload</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+        * {
+            font-family: "Roboto";
+        }
+
+        body {
+            background-color: #266CBF;
+            text-align: center;
+        }
+
+        form {
+            padding: 25px;
+        }
+
+        input {
+            margin: 10px;
+        }
+
+        table {
+            width: 100%; 
+            text-align: center;
+            margin-top: 25px;
+            padding: 25px;
+            background-color: #FFFFFF;
+        }
+
+        table tr td {
+            padding-top: 15px;            
+        }
+        #form_box {
+            background-color: white;
+            width: 700px;
+            border-radius: 50px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color: white;">강의실</h1>
+
+    <h1 style="color: white;">업로드 된 강의 목록</h1>
+    <table>
+        <tr>
+            <th>강의명</th>
+            <th>강의 동영상 재생</th>
+            <th>강의 자료 다운로드</th>
+            <th>강의자료 해설 파일 다운로드</th>
+            <th>해설 오디오파일 재생</th>
+        </tr>
+        {% for file in files %}
+            <tr>
+                <td>{{ file.title }}</td>
+                <td>{{ file.title }}</td>
+                <td>{{ file.videoFile.url }}</td>
+                <td>{{ file.docFile.url }}</td>
+                <td>{{ file.dateTimeOfUpload }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
