@@ -5,20 +5,24 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Django File Upload</title>
+
     {% load static %}
     <link rel="stylesheet" type="text/css" href="{% static 'bootstrap.min.css' %}">
-    <link href="https://fonts.googleapis.com/css?family=Nanum+Gothic|Nanum+Myeongjo&display=swap&subset=korean" rel="stylesheet">
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
         * {
-            font-family: "Roboto";
+            font-family: sans-serif;
         }
 
-        body {
+        html, body {
             background-color: #266CBF;
             text-align: center;
+            width: 100%;
+            height: 635px;
+            margin: 0px;
         }
 
         form {
@@ -29,43 +33,18 @@
             margin: 10px;
         }
 
-        table {
-            width: 100%; 
-            text-align: center;
-            margin-top: 25px;
-            padding: 25px;
-            background-color: #FFFFFF;
-        }
-
-        table tr td {
-            padding-top: 15px;            
-        }
         .class_box {
             background-color: white;
-            width: 100%;
+            width: 90%;
             text-align: left;
             border-radius: 15px;
-            margin: 20px auto;
-            margin-bottom: 10px;
-            font-family: 'Nanum Gothic', sans-serif;
             font-size: 20pt;
-        }
-        .class_inner_box {
-            padding: 10px;
-        }
-        .b01_simple_rollover {
-            color: #000000;
-            border: #000000 solid 1px;
-            padding: 10px;
-            margin-left: 10px;
-            margin-right: 10px;
-            background-color: #ffffff;
-            font-size: 15pt;
+            margin: 0 auto;
+            margin-top: 20px;
         }
 
-        .b01_simple_rollover:hover {
-            color: #ffffff;
-            background-color: #145097;
+        .class_inner_box {
+            padding: 10px;
         }
 
         .navbar{
@@ -110,6 +89,110 @@
             font-size: 10pt;
         }
 
+        aside {
+            width: 30%;
+            height: 100%;
+            float: left;
+            background-color: #FBFAFE;
+            {#background-color: darkgray;#}
+            margin: 0 auto;
+        }
+
+        .form_box {
+            display: inline-block;
+            width: 80%;
+            height: 80%;
+            text-align: center;
+            background-color: #ffffff;
+            border-radius: 15px;
+            margin: 0 auto;
+            margin-top: 60px;
+            box-shadow: 5px 5px 10px 5px #ECE8FC;
+        }
+
+        #form_title {
+            width: 100%;
+            height: 100px;
+            color: white;
+            background-color: #6c5ce7;
+            border-top-left-radius: 15px;
+            border-top-right-radius: 15px;
+            display: table;
+            text-align: center;
+        }
+
+        #form_inner_box {
+            margin: 0 auto;
+            width: 100%;
+            text-align: left;
+            border: #1b1e21;
+        }
+
+        .form_text {
+            font-weight: bolder;
+            font-size: 10pt;
+            color: #6c5ce7;
+            margin-top: 10px;
+        }
+
+        #form_inner_box input {
+            margin-left: 0px;
+        }
+
+        .text_input {
+            padding: 5px;
+            border-color: #E5E5E5;
+            border-style: dashed;
+            border-radius: 10px;
+        }
+
+        #submit_bnt {
+            width: 50%;
+            height: 50px;
+            border-radius: 30px;
+            color: white;
+            background-color: #6c5ce7;
+            border: 0;
+            outline: 0;
+            font-weight: bolder;
+            text-align: center;
+            margin-top: 30px;
+            box-shadow: 5px 5px 10px 5px #ECE8FC;
+        }
+
+        aside h1 {
+            text-align: center;
+            color: white;
+            font-weight: bolder;
+        }
+
+        section {
+            width: 70%;
+            height: 100%;
+            float: right;
+            background-color: #FBFAFE;
+        }
+
+        .class_title_box {
+            background: linear-gradient(to right, #6c5ce7, #81ecec);
+            border-top-right-radius: 15px;
+            border-top-left-radius: 15px;
+        }
+
+        .class_title {
+            text-align: left;
+            padding-left: 20px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            color: white;
+            font-weight: bolder;
+        }
+
+        footer {
+            background-color: #F0F0F0;
+            clear:both;
+        }
+
     </style>
 </head>
 <body>
@@ -121,27 +204,48 @@
         </ul>
     </nav>
 
-    <h1 style="color: white;">강의실</h1>
-
-    <h1 style="color: white;">업로드 된 강의 목록</h1>
-
-    {% for file in files %}
-        <div class="class_box">
-
-            <div class="class_inner_box">
-                <span style="font-size: 30pt; color: #145097; padding-left: 10px; font-weight: bolder">{{ file.title }}</span>
-                <a href="" class="btn btn-primary" target="_blank">강의 동영상 재생</a>
-                <a href="" class="btn btn-primary" target="_blank">강의 자료 다운로드</a>
+    <aside>
+        <div class="form_box">
+            <div id="form_title">
+                <div style="padding: 10px; font-size: 15pt; font-weight: bolder; text-align: center; display: table-cell; vertical-align: middle;">Submit a lecture file</div>
             </div>
-
-            <div class="class_inner_box">
-                <span style="padding-left: 10px;">{{ file.dateTimeOfUpload }}</span>
-                <a href="/onlineclass/commentor/{{ file.id }}/" class="btn btn-primary" target="_blank">해설 오디오 파일 재생</a>
-                <a href="" class="btn btn-primary" target="_blank">강의자료 해설 파일 다운로드</a>
-            </div>
-
+            <form action="{% url 'upload:upload_files' %}" method="POST" enctype="multipart/form-data">
+                <div id="form_inner_box">
+                    <div class="form_text">Lecture Title</div>
+                    <input class="text_input" type="text" name="fileTitle" placeholder="Enter a title">
+                    <div class="form_text">Choose Lecture Video(.mp4)</div>
+                    <input class="text_input" type="file" name="videoFile">
+                    <div class="form_text">Choose Lecture Material(.pdf)</div>
+                    <input class="text_input" type="file" name="docFile">
+                    {% csrf_token %}
+                </div>
+                <input id="submit_bnt" type="submit" value="Upload">
+            </form>
         </div>
-    {% endfor %}
+    </aside>
+
+    <section>
+        {% for file in files %}
+            <div class="class_box">
+
+                <div class="class_title_box">
+                    <div class="class_title">{{ file.title }}</div>
+                </div>
+
+                <div class="class_inner_box">
+                    <a href="" class="btn btn-primary" target="_blank">강의 동영상 재생</a>
+                    <a href="" class="btn btn-primary" target="_blank">강의 자료 다운로드</a>
+                    <a href="/onlineclass/commentor/{{ file.id }}/" class="btn btn-primary" target="_blank">해설 오디오 파일 재생</a>
+                    <a href="" class="btn btn-primary" target="_blank">강의자료 해설 파일 다운로드</a>
+                </div>
+
+            </div>
+        {% endfor %}
+    </section>
+
+    <footer>
+        <p>Copyright © 2021 Team Commentor</p>
+    </footer>
 
 
     <!-- 자바스크립트 함수 선언-->
