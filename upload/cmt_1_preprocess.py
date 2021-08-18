@@ -1,4 +1,3 @@
-
 # * 코드 파일 이름: cmt_1_preprocess.py
 # * 코드 작성자: 박동연, 강소정, 김유진
 # * 코드 설명: 동영상 강의 해설 파일을 생성하기 위한 전처리 파일 생성
@@ -43,6 +42,10 @@ pdf2image_module_path = "D:/commentor/upload/Release-21.03.0/poppler-21.03.0/Lib
 from scenedetect import VideoManager, SceneManager, StatsManager
 from scenedetect.detectors import ContentDetector
 from scenedetect.scene_manager import save_images, write_scene_list_html
+
+# mp3 길이 추출 import
+from mutagen.mp3 import MP3
+
 
 # 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수 (최대 9999장까지 가능)
 def set_Filenum_of_Name(filenum):
@@ -219,6 +222,7 @@ def NLP(filename):
     txtfilter_out.write(textfilter)
     txtfilter_out.close()
 
+
 # 이미지 캡션 위치 조정하는 함수
 def modifytxt(filename, page_idx):
     result = []
@@ -358,9 +362,9 @@ def eng2Kor(image_caption):
     trans1 = translator.translate(image_caption, src='en', dest='ko')
     return trans1.text
 
+
 # 캡처 이미지 중 최초 등장 시점을 파악하여 필터링하는 함수
 def captureFiltering(capture_path, capture_FA_path):
-    
     print("\n[이미지 유사도 계산 시작] 캡처 화면 필터링을 시작합니다")
     captureList = os.listdir(capture_path)
     captureList = [capture_file for capture_file in captureList if capture_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
@@ -445,10 +449,10 @@ def JaccardSimilarity(inp1, inp2):
     list_inp2 = inp2.split()
     mom = set(list_inp1).union(set(list_inp2))
     son = set(list_inp1).intersection(set(list_inp2))
-    #print(mom)
-    #print(son)
-    #print("\n")
-    return len(son)/len(mom)
+    # print(mom)
+    # print(son)
+    # print("\n")
+    return len(son) / len(mom)
 
 
 # 텍스트 유사도 + ORB 유사도를 사용하여 알맞는 슬라이드를 찾아주는 함수
@@ -459,7 +463,8 @@ def txtSimCompare(slide_path, capture_FA_path, default_path, pdf_path):
     print(">>> 슬라이드 파일 목록:", slideList)
 
     capture_FA_List = os.listdir(capture_FA_path)
-    capture_FA_List = [capture_file for capture_file in capture_FA_List if capture_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
+    capture_FA_List = [capture_file for capture_file in capture_FA_List if
+                       capture_file.endswith(".jpg")]  # jpg로 끝나는 것만 가져오기
     capture_FA_List.sort()
     print(">>> 캡쳐 파일 목록:", capture_FA_List)
 
@@ -474,14 +479,13 @@ def txtSimCompare(slide_path, capture_FA_path, default_path, pdf_path):
         Pdf = pdfplumber.open(pdf_path)
 
         for page in Pdf.pages:
-
             text = str(page.extract_text())
 
-            result = JaccardSimilarity(jpgtotext, text) # 선 텍스트 유사도 비교
+            result = JaccardSimilarity(jpgtotext, text)  # 선 텍스트 유사도 비교
             result_list.append(result)
             print(capture, "vs", str(page), ":", str(result))
 
-        if max(result_list) <= 0.25: # 텍스트 유사도 비교가 부정확할 시 orb 사용
+        if max(result_list) <= 0.25:  # 텍스트 유사도 비교가 부정확할 시 orb 사용
             page_num = orbCompare(capture, slide_path, capture_FA_path) + 1
         else:
             page_num = result_list.index(max(result_list)) + 1
@@ -571,9 +575,47 @@ def cutLectureMp3(video_path, audio_path, save_path, lec_path):
     print("\n[lec 생성 종료] mp3 파일 변환 및 mp3 파일 CUT을 종료합니다")
 
 
+def mixTime(default_path, save_path, tts_path, lec_path):
+    # 0816 수정
+    # slide에서 숫자만 떼놓는 부분
+    data_pd = pd.read_csv(save_path, header=None, index_col=None, names=None)
+    data_np = pd.DataFrame.to_numpy(data_pd)
+    data_string = ""
+    data_list = []
+    for i in data_np[1:, 2]:
+        data_string = i
+        numbers = re.sub(r'[^0-9]', '', data_string)
+        data_list.append(numbers)
+
+    # csv 파일에 tts 추가한 시간 기록한 셀 추가
+    mix_time_list = []
+    time_csv = pd.read_csv(save_path)
+
+    tts_list = os.listdir(tts_path)
+    tts_list = [tts_file for tts_file in tts_list if tts_file.endswith(".mp3")]  # tts 가져오기
+    tts_list.sort()
+
+    lec_list = os.listdir(lec_path)
+    lec_list = [lec_file for lec_file in lec_list if lec_file.endswith(".mp3")]  # lec 가져오기
+    lec_list.sort()
+
+    mix_time = 0.0
+    mix_time_list.append(mix_time)
+
+    for i, j in zip(range(len(time_csv["slide"]) - 1), data_list):
+        tts_list[i] = MP3(default_path + "tts/" + "tts_" + j + ".mp3").info.length
+        lec_list[i] = MP3(default_path + "lec/" + "lec_" + set_Filenum_of_Name(i + 1) + ".mp3").info.length
+
+        mix_time = mix_time + tts_list[i] + lec_list[i]
+        mix_time_list.append(mix_time)
+
+        print(set_Filenum_of_Name(i + 1) + "번째 tts+lec MP3 mixed time csv에 기록 완료\n")
+
+    return mix_time_list
+
+
 # 메인함수
 def execute_preprocess(default_path):
-
     # 경로 설정 (경로 내에 한글 디렉토리 및 한글 파일이 있으면 제대로 동작하지 않음 유의 !!!!!)
     pdf_path = default_path + "lecture_doc.pdf"
     video_path = default_path + "lecture_video.mp4"
@@ -623,11 +665,11 @@ def execute_preprocess(default_path):
 
     tf_timeline_list = []
     for i, idx_val in enumerate(tf_timeline_idx):
-        tf_timeline_list.append(captured_timeline_list[idx_val]) # PART 1
+        tf_timeline_list.append(captured_timeline_list[idx_val])  # PART 1
         print("[" + str(i + 1) + "번째 슬라이드 등장시간]", int(captured_timeline_list[idx_val] / 60), "분",
               round(captured_timeline_list[idx_val] % 60), "초")
 
-    df['time'] = tf_timeline_list # PART 1
+    df['time'] = tf_timeline_list  # PART 1
 
     selected_slide_list = txtSimCompare(slide_path, capture_FA_path, default_path, pdf_path)  # PART 2
     df['slide'] = selected_slide_list  # 해당 전환 시점에 등장한 슬라이드 기입
@@ -645,6 +687,15 @@ def execute_preprocess(default_path):
     # 원본 강의 영상을 mp3로 변환 및 전환 시점에 맞추어 cut
     tmp_start = time.time()
     cutLectureMp3(video_path, audio_path, save_path, lec_path)
+    tmp_sec = time.time() - tmp_start
+    tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
+    time_list.append(tmp_times[0])
+
+    # mix time csv에 기록
+    tmp_start = time.time()
+    df['mix_time'] = mixTime(default_path, save_path, tts_path, lec_path)
+    df.to_csv(save_path, mode='w')
+
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])

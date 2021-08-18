@@ -201,6 +201,36 @@
             overflow: hidden;
         }
 
+        #myProgress {
+            height: 20px;
+            width: 95%;
+            background: #C6C6C6;
+            border-radius: 25px;
+            margin: 10px;
+            box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.3);
+        }
+
+        #myBar {
+            display: block;
+            height: 100%;
+            width: {{progress_num}}%;
+            border-top-right-radius: 8px;
+            border-bottom-right-radius: 8px;
+            border-top-left-radius: 20px;
+            border-bottom-left-radius: 20px;
+            background-color: #6c5ce7;
+            background-image: linear-gradient(to right, #6c5ce7, #81ecec);
+            box-shadow: inset 0 2px 9px  rgba(255,255,255,0.3), inset 0 -2px 6px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #label {
+        text-align: center;
+        line-height: 30px;
+        color: white;
+        }
+
         section h3 {
             margin-top: 10px;
             color: #474747;
@@ -230,7 +260,7 @@
             <div id="form_title">
                 <div style="padding: 10px; font-size: 15pt; font-weight: bolder; text-align: center; display: table-cell; vertical-align: middle;">Submit a lecture file</div>
             </div>
-            <form action="{% url 'upload:upload_files' %}" method="POST" enctype="multipart/form-data">
+            <form id="file_form" action="{% url 'upload:upload_files' %}" method="POST" enctype="multipart/form-data">
                 <div id="form_inner_box">
                     <div class="form_text">Lecture Title</div>
                     <input class="text_input" type="text" name="fileTitle" placeholder="Enter a title">
@@ -240,7 +270,7 @@
                     <input class="text_input" type="file" name="docFile">
                     {% csrf_token %}
                 </div>
-                <input id="submit_bnt" type="submit" value="Upload">
+                <button id="submit_bnt" type="submit" value="Upload" onclick="move()">Upload</button>
             </form>
         </div>
     </aside>
@@ -248,11 +278,27 @@
     <section>
         <h1>Task Loading</h1>
 
-        <div class="meter">
-            <span style="width: 25%"></span>
+        {% comment %} <div class="meter">
+            <span id="progress" style="width: 0%"></span>
+        </div> {% endcomment %}
+
+        <div id="myProgress">
+        <div id="myBar">
+            <div id="label">{{progress_num}}%</div>
+        </div>
         </div>
 
-        <h3>진행상태 25% : 영상의 전환점을 찾고있습니다</h3>
+        {% comment %} <div class="myProgress">
+        <div class="myBar"></div>
+        <div class="progress progressNow"></div>
+        <div class="label">0 %</div>
+		</div> {% endcomment %}
+
+        <h3 id="pro_text">진행상태 {{progress_num}}%</h3>
+        <p>{{sertime}}</p>
+        <p>{{user_name}}</p>
+
+        {% comment %} <button onclick="move()">Click Me</button>  {% endcomment %}
 
         <h1>Lecture list uploaded to server</h1>
 
@@ -279,6 +325,93 @@
     <footer>
         <p>Copyright © 2021 Team Commentor</p>
     </footer>
+
+<script>
+    function move() {
+        var elem = document.getElementById("myBar");
+        var pro_text = document.getElementById("pro_text");
+        var width = 0;
+        var id = setInterval(frame, {{sertime}});
+        function frame() {
+            if (width >= 100) {
+            clearInterval(id);
+            document.getElementById("pro_text").innerHTML = '진행상태 ' + width * 1  + '% : 완료되었습니다.';
+            }
+            else if(width <= 10){
+            width++;
+            elem.style.width = width + '%';
+            document.getElementById("label").innerHTML = width * 1  + '%';
+            document.getElementById("pro_text").innerHTML = '진행상태 ' + width * 1  + '% : 파일 업로드 요청을 하고 있습니다.';
+            }
+            else if(width <= 20){
+            width++;
+            elem.style.width = width + '%';
+            document.getElementById("label").innerHTML = width * 1  + '%';
+            document.getElementById("pro_text").innerHTML = '진행상태 ' + width * 1  + '% : 파일을 저장하고 있습니다.';
+            }
+            else if(width <= 70){
+            width++;
+            elem.style.width = width + '%';
+            document.getElementById("label").innerHTML = width * 1  + '%';
+            document.getElementById("pro_text").innerHTML = '진행상태 ' + width * 1  + '% : 저장된 파일로 commentor 서비스를 실행하고 있습니다.';
+            }
+            else if(width <= 85){
+            width++;
+            elem.style.width = width + '%';
+            document.getElementById("label").innerHTML = width * 1  + '%';
+            document.getElementById("pro_text").innerHTML = '진행상태 ' + width * 1  + '% : 부가 파일들 저장하고 있습니다.';
+            }
+            else if(width < 100){
+            width++;
+            elem.style.width = width + '%';
+            document.getElementById("label").innerHTML = width * 1  + '%';
+            document.getElementById("pro_text").innerHTML = '진행상태 ' + width * 1  + '% : 부가 파일들 경로를 db에 저장하고 있습니다.';
+            }
+        }
+    }
+
+    {% comment %} function move() {
+        console.log("click Time : " + new Date);
+
+			var form = $("#file_form")[0];
+			var formData = new FormData(form);
+			$.ajax({
+				type: "POST",
+				enctype: 'multipart/form-data',
+				url: "{% url 'upload:upload_files' %}",
+				data: formData,
+				processData: false,
+				contentType: false,
+				cache: false,
+				xhr: function(){
+					var xhr = $.ajaxSettings.xhr();
+					xhr.upload.onprogress = function(e){
+						var per = e.loaded * 100 / e.total;
+						progressBar(per);
+					};
+					return xhr;
+				},
+				success: function (data) {
+					console.log("SUCCESS : ", data);
+				},
+				error: function (e) {
+					console.log("ERROR : ", e);
+				}
+			});
+    }
+
+    function progressBar(per){
+        var elem = document.getElementById("myBar");
+        var pro_text = document.getElementById("pro_text");
+
+		if(per > 55){
+            $(".label").css("color", "#000");
+		}
+		per = per.toFixed(1);
+		$(".label").text(per+" %");
+		$(".progressNow").css("width", "calc(" + per + "% - 20px)");
+	} {% endcomment %}
+</script>
 
 </body>
 </html>
