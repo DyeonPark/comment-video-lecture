@@ -62,9 +62,6 @@
 <body>
     <script lang="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
 
-    <!--csv 파일 선택-->
-    <input type="file" id="id_file_upload" onchange="upload(event)"/>
-
     <!--슬라이드 목록 리스트가 생성될 공간-->
     <ul id='fruits' tabindex="1"></ul>
 
@@ -73,12 +70,11 @@
         <label><input type="checkbox" name="option" value="전체 설명 생략"> 전체 설명 생략</label>
     </form>
 
-    <h1>imgfile</h1>
     <!-- audio와 video 설정 -->
-    <video src={{ helper.helper_audio.url }} id="myVideo" width='450' height='360' controls autoplay loop preload></video>
+    <video src={{ helper.helper_audio.url }} id="myVideo" width='450' height='360' controls loop preload></video>
     <br />
 
-    <class id=butt>
+    <class id="butt">
         <button id="prevSlide">이전 슬라이드</button>
         <button id="prevPlay">6초 전</button>
         <button id="videoPlay">재생</button>
@@ -135,7 +131,9 @@
     $("#nextSlide").on("click", function() {
       var time_cur = video.currentTime;
       time_cur *= 1;
-
+      //console.log(time_cur);
+      //console.log(arr.length);
+      //console.log(video.duration);
       for(k = 0; k < arr.length-1; k++) {
 
         if(arr[k]<= time_cur && time_cur < arr[k+1]){
@@ -154,70 +152,61 @@
         alert(vid.currentTime);
     }
 
-    function upload(event){
-      var input = event.target;
-      var reader = new FileReader();
-      var objKeyArr;
+    $.ajax({
+    url: '{{helper.helper_csv.url}}',
+    dataType: 'text',
+    }).done(successFunction);
 
+    function successFunction(data) {
+      var read_buffer = XLSX.read(data, {type : 'binary'});
 
-      reader.onload = function(){
-        var fdata = reader.result;
-        var read_buffer = XLSX.read(fdata, {type : 'binary'});
+      read_buffer.SheetNames.forEach(function(sheetName){
+        var rowdata =XLSX.utils.sheet_to_json(read_buffer.Sheets[sheetName]);
+        objKeyArr = Object.keys(rowdata);
 
-        read_buffer.SheetNames.forEach(function(sheetName){
-          var rowdata =XLSX.utils.sheet_to_json(read_buffer.Sheets[sheetName]);
-          //console.log(JSON.stringify(rowdata));
-          objKeyArr = Object.keys(rowdata);
+        for(C = 0; C < objKeyArr.length; ++C) {
+          console.log("time : "+ JSON.stringify(rowdata[C].mix_time));
+          arr[C] = JSON.stringify(rowdata[C].mix_time);
+        }
+        for(B = 0; B < objKeyArr.length; ++B) {
 
-          for(C = 0; C < objKeyArr.length; ++C) {
-            console.log("time : "+ JSON.stringify(rowdata[C].time));
-            arr[C] = JSON.stringify(rowdata[C].time);
+          const addValue = B;
+
+          // 2. 추가할 li element 생성
+          // 2-1. 추가할 li element 생성
+          const li = document.createElement("li");
+
+          // 2-2. li에 id 속성 추가
+          li.setAttribute('id',addValue);
+          li.setAttribute('tabindex', addValue+2);
+          li.setAttribute('onkeypress',"JavaScript:press(this.form)")
+
+          // 2-3. li에 text node 추가
+          const textNode = document.createTextNode(B+1+"번 슬라이드");
+          li.appendChild(textNode);
+
+          // 3. 생성된 li를 ol에 추가
+          document
+            .getElementById('fruits')
+            .appendChild(li);
+
+        }
+      })
+
+      $('li').on("click", function() {
+        console.log($('li').index(this)+1);
+        var idd= $('li').index(this)+1;
+
+        for(A = 0; A < objKeyArr.length; ++A) {
+          if(idd == A+1) {
+            tt = Number(arr[A]);
+            tt *=1;
+            vid.currentTime=tt;
           }
-          for(B = 0; B < objKeyArr.length; ++B) {
+        }
 
-            const addValue = B;
-
-            // 2. 추가할 li element 생성
-            // 2-1. 추가할 li element 생성
-            const li = document.createElement("li");
-
-            // 2-2. li에 id 속성 추가
-            li.setAttribute('id',addValue);
-            li.setAttribute('tabindex', addValue+2);
-            li.setAttribute('onkeypress',"JavaScript:press(this.form)")
-
-            // 2-3. li에 text node 추가
-            const textNode = document.createTextNode(B+1+"번 슬라이드");
-            li.appendChild(textNode);
-
-            // 3. 생성된 li를 ol에 추가
-            document
-              .getElementById('fruits')
-              .appendChild(li);
-
-          }
-        })
-
-          $('li').on("click", function() {
-            console.log($('li').index(this)+1);
-            var idd= $('li').index(this)+1;
-
-            for(A = 0; A < objKeyArr.length; ++A) {
-              if(idd == A+1) {
-                tt = Number(arr[A]);
-                tt *=1;
-                vid.currentTime=tt;
-              }
-            }
-
-          });
-
-      };
-
-      reader.readAsBinaryString({{ helper.helper_csv.url }});
-
+      });
     }
-
     </script>
 </body>
 </html>

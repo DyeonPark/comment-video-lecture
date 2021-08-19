@@ -46,6 +46,10 @@ from scenedetect.scene_manager import save_images, write_scene_list_html
 # mp3 길이 추출 import
 from mutagen.mp3 import MP3
 
+# mp4 파일 trim을 위한 라이브러리 호출
+from moviepy.editor import VideoFileClip
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+
 
 # 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수 (최대 9999장까지 가능)
 def set_Filenum_of_Name(filenum):
@@ -575,6 +579,38 @@ def cutLectureMp3(video_path, audio_path, save_path, lec_path):
     print("\n[lec 생성 종료] mp3 파일 변환 및 mp3 파일 CUT을 종료합니다")
 
 
+# 동영상 내 화면 전환이 발생하는 시점을 기준으로 원본 강의 동영상 파일을 자르는 함수
+def cut_lecture_mp4(video_path, save_path, lecture_trim_path):
+    print("\n[lec mp4 CUT 시작] 원본 강의의 mp4 파일 CUT을 시작합니다")
+
+    time_csv = pd.read_csv(save_path)
+
+    # 디렉토리 유무 검사 및 디렉토리 생성
+    try:
+        if not os.path.exists(lecture_trim_path):  # 디렉토리 없을 시 생성
+            os.makedirs(lecture_trim_path)
+    except OSError:
+        print('Error: Creating directory. ' + lecture_trim_path)  # 디렉토리 생성 오류
+
+    for i in range(len(time_csv["time"])):
+
+        fileName = "lec_" + set_Filenum_of_Name(i + 1) + ".mp4"
+        fileName = lecture_trim_path + fileName
+
+        if i == (len(time_csv["time"]) - 1):  # 마지막 클립
+            cut_point_start = int(time_csv["time"][i])
+            clip = VideoFileClip(video_path)
+            ffmpeg_extract_subclip(video_path, cut_point_start, clip.duration, targetname=fileName)
+        else:  # 처음, 중간 클립
+            cut_point_start = int(time_csv["time"][i])
+            cut_point_end = int(time_csv["time"][i + 1])
+            ffmpeg_extract_subclip(video_path, cut_point_start, cut_point_end, targetname=fileName)
+
+        print(">>> >>>", i + 1, "번째 클립 mp4 파일 생성 완료")
+
+    print("\n[lec mp4 CUT 시작] 원본 강의의 mp4 파일 CUT을 종료합니다")
+
+
 def mixTime(default_path, save_path, tts_path, lec_path):
     # 0816 수정
     # slide에서 숫자만 떼놓는 부분
@@ -627,6 +663,7 @@ def execute_preprocess(default_path):
     tts_path = default_path + "tts/"
     mix_path = default_path + "mix/"
     lec_path = default_path + "lec/"
+    lecture_trim_path = default_path + "lecture_trim/"
     img_path = default_path + "img/"
 
     # 최종 출력 파일
@@ -684,9 +721,10 @@ def execute_preprocess(default_path):
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
 
-    # 원본 강의 영상을 mp3로 변환 및 전환 시점에 맞추어 cut
+    # 원본 강의 영상을 전환 시점에 맞추어 cut
     tmp_start = time.time()
-    cutLectureMp3(video_path, audio_path, save_path, lec_path)
+    cutLectureMp3(video_path, audio_path, save_path, lec_path) # mp4 > mp3 cut (추후 지워야 할 부분)
+    cut_lecture_mp4(video_path, save_path, lecture_trim_path) # mp4 cut
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
