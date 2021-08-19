@@ -78,7 +78,7 @@ aside {
 
 aside h1 {
     text-align: center;
-    color: #7266AB;
+    color: #7597E9;
     font-size: 20pt;
     font-weight: bolder;
 }
@@ -96,7 +96,7 @@ aside h3 {
     width: 80%;
     padding: 10px;
     padding-left: 20px;
-    background-color: #4e555b;
+    background-color: darkgray;
     border-radius: 30px;
     color: white;
     font-weight: bolder;
@@ -116,16 +116,16 @@ aside li {
     padding: 20px;
     padding-left: 30px;
     color: white;
-    background-color: #81EAEC;
+    background-color: #7DD4EB;
     list-style: none;
     border-radius: 30px;
     font-weight: bolder;
 }
 
 aside li:hover{
-    background-color: #7DD4EB;
+    background-color: #79B6EA;
 }
 
 aside li:active{
-    background-color: #79B6EA;
+    background-color: #7597E9;
 }
