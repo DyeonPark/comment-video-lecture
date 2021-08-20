@@ -47,7 +47,7 @@ from scenedetect.scene_manager import save_images, write_scene_list_html
 from mutagen.mp3 import MP3
 
 # mp4 파일 trim을 위한 라이브러리 호출
-from moviepy.editor import VideoFileClip
+from moviepy.editor import *
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 
@@ -650,6 +650,49 @@ def mixTime(default_path, save_path, tts_path, lec_path):
     return mix_time_list
 
 
+def tts_img_mix(default_path, save_path, tts_path, slide_path):
+    tts_img_path = default_path + "tts_img/"
+    df = pd.DataFrame()
+    img_time_list = []
+    time_csv = pd.read_csv(save_path)
+
+    # 디렉토리 유무 검사 및 디렉토리 생성
+    try:
+        if not os.path.exists(tts_img_path):  # 디렉토리 없을 시 생성
+            os.makedirs(tts_img_path)
+    except OSError:
+        print('Error: Creating directory. ' + tts_img_path)  # 디렉토리 생성 오류
+
+    j=1
+    for i in time_csv["slide"]:
+        print(i)
+        numbers = re.sub(r'[^0-9]', '', i)
+        # numbers = '0' + numbers
+        tts_file = "tts_" + numbers + ".mp3"
+        print(tts_file)
+
+        tts = AudioFileClip(tts_path + tts_file)
+        video = ImageClip(slide_path + i, duration=tts.duration)
+        video = video.set_audio(tts)
+        video.write_videofile(tts_img_path + "/tts_img_" + set_Filenum_of_Name(j) + ".mp4",fps=24, codec="mpeg4")
+        j+=1
+
+
+def combine_txt(txt_path):
+    txt_file_list = os.listdir(txt_path)
+    txt_file_list = [txt_file for txt_file in txt_file_list if txt_file.endswith(".txt")]  # txt 파일 가져오기
+    txt_file_list.sort()
+
+    final_file = open(txt_path + "final_file.txt", 'w')
+
+    for txt_file in txt_file_list:
+        file = open(txt_path + txt_file, 'rt', encoding='UTF8')
+        data = file.read()
+        final_file.write(data + "\n")
+
+    final_file.close()
+
+
 # 메인함수
 def execute_preprocess(default_path):
     # 경로 설정 (경로 내에 한글 디렉토리 및 한글 파일이 있으면 제대로 동작하지 않음 유의 !!!!!)
@@ -738,6 +781,20 @@ def execute_preprocess(default_path):
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
 
+    # tts와 img 합쳐서 새로운 mp4 파일 생성
+    tmp_start = time.time()
+    tts_img_mix(default_path, save_path, tts_path, slide_path)
+    tmp_sec = time.time() - tmp_start
+    tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
+    time_list.append(tmp_times[0])
+
+    # 최종 통합된 텍스트 파일 생성
+    tmp_start = time.time()
+    combine_txt(txt_path)
+    tmp_sec = time.time() - tmp_start
+    tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
+    time_list.append(tmp_times[0])
+
     total_sec = time.time() - total_start
     total_times = str(datetime.timedelta(seconds=total_sec)).split(".")
 
@@ -748,4 +805,6 @@ def execute_preprocess(default_path):
     print("■ 이미지 유사도 매칭 시간:", time_list[3])
     print("■ TTS 시간:", time_list[4])
     print("■ mp3 변환 및 CUT 시간:", time_list[5])
+    print("■ 새로운 mp4 영상 생성 시간:", time_list[6])
+    print("■ 최종 통합된 텍스트 파일 생성 시간:", time_list[7])
     print("■□■ 총 소요 시간:", total_times[0])
