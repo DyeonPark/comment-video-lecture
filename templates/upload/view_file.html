@@ -101,36 +101,5 @@
         <p>Copyright © 2021 Team Commentor</p>
     </footer>
 
-
-    <!-- 자바스크립트 함수 선언-->
-    <script type="text/javascript">
-
-        // 코멘터 프로그램(html)을 호출하는 함수
-        function commenter_call(obj) {
-            //var upload_id = document.getElementById(obj.getAttribute("id")).getAttribute("id");
-            window.open(
-                "commentor.html",
-                "코멘터 프로그램 - 해설 오디오 파일 재생",
-                "width=1000, height=600, left=250, top=100, scrollbars=no, resizable=yes, toolbar=no"
-            );
-        }
-
-        // 강의자료 해설 파일(txt)을 다운로드 요청하는 함수
-        function download_txt(obj) {
-            var upload_id = document.getElementById(obj.getAttribute("id")).getAttribute("id");
-            window.alert(upload_id);
-        }
-
-        // 강의 동영상을 재생하는 함수
-        function play_video(obj) {
-            var upload_id = document.getElementById(obj.getAttribute("id")).getAttribute("id");
-        }
-
-        // 강의 자료(pdf 파일)을 다운로드 요청하는 함수
-        function download_pdf(obj) {
-            var upload_id = document.getElementById(obj.getAttribute("id")).getAttribute("id");
-        }
-
-    </script>
 </body>
 </html>

@@ -6,6 +6,6 @@ from upload.models import Document
 class Helper(models.Model):
 	helper_id = models.AutoField(primary_key=True)
 	doc_id = models.ForeignKey(Document, on_delete=models.CASCADE)
-	helper_audio = models.FileField()
+	helper_video = models.FileField()
 	helper_txt = models.FileField(null=True)
 	helper_csv = models.FileField(null=True)

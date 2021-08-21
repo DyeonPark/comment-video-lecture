@@ -6,11 +6,16 @@
 
 
 # 패키지 및 라이브러리 호출
+
+import os
+import sys
+import shutil
+
 import cv2
+import warnings
 from skimage.measure import compare_ssim
 
 from PIL import Image
-import sys
 import time
 import datetime
 import pandas as pd
@@ -18,17 +23,12 @@ import re
 import pdfplumber
 from pytesseract import *
 
-import shutil
-import moviepy.editor as mp
-
 from pdf2image import convert_from_path  # pdf2img
 from gtts import gTTS
-from pydub import AudioSegment
 
 # 이미지 추출 import
 import fitz  # PyMuPDF
 import io
-import os
 
 # 이미지 캡션 import
 import requests
@@ -36,19 +36,21 @@ import requests
 # 번역 import
 from googletrans import Translator
 
-pdf2image_module_path = "D:/commentor/upload/Release-21.03.0/poppler-21.03.0/Library/bin/"
-
 # 강의 동영상 내 전환시점 파악을 위한 라이브러리 호출
 from scenedetect import VideoManager, SceneManager, StatsManager
 from scenedetect.detectors import ContentDetector
 from scenedetect.scene_manager import save_images, write_scene_list_html
 
-# mp3 길이 추출 import
+# mp3, mp4 길이 추출 import
 from mutagen.mp3 import MP3
+from mutagen.mp4 import MP4
 
-# mp4 파일 trim을 위한 라이브러리 호출
+# mp4 파일 trim 및 생성
 from moviepy.editor import *
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+
+pdf2image_module_path = "D:/commentor/upload/Release-21.03.0/poppler-21.03.0/Library/bin/"  # 환경세팅마다 바꾸어주어야함!! 주의!!
+warnings.filterwarnings(action='ignore') #경고 무시
 
 
 # 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수 (최대 9999장까지 가능)
@@ -123,7 +125,6 @@ def capture_video(video_path, capture_path, default_path):
         start, end = scene
 
         # 전환 시점 저장
-        # print(f'{start.get_seconds()} - {end.get_seconds()}')
         captured_timeline_list.append(start.get_seconds())
 
     print("[전환장면 캡처 종료] 영상 내 전환 시점을 기준으로 이미지 추출을 종료합니다\n")
@@ -453,9 +454,6 @@ def JaccardSimilarity(inp1, inp2):
     list_inp2 = inp2.split()
     mom = set(list_inp1).union(set(list_inp2))
     son = set(list_inp1).intersection(set(list_inp2))
-    # print(mom)
-    # print(son)
-    # print("\n")
     return len(son) / len(mom)
 
 
@@ -539,46 +537,6 @@ def txt2TTS(txt_path, tts_path):
     print("[TTS 종료] TTS 변환을 종료합니다\n")
 
 
-# 동영상 내 화면 전환이 발생하는 시점을 기준으로 원본 오디오 파일을 자르는 함수
-def cutLectureMp3(video_path, audio_path, save_path, lec_path):
-    print("\n[lec 생성 시작] mp3 파일 변환 및 mp3 파일 CUT을 시작합니다")
-
-    print(">>> mp4 영상 → mp3 오디오 변환 시작")
-    # 원본 강의 mp4영상을 mp3 형식으로 변환
-    clip = mp.VideoFileClip(video_path)  # 동영상 불러오기
-    clip.audio.write_audiofile("lecture_audio.mp3")  # mp3 파일로 변환
-    shutil.move("lecture_audio.mp3", audio_path)  # mp3 파일을 원하는 디렉토리로 이동
-    print(">>> mp4 영상 → mp3 오디오 변환 완료")
-
-    print(">>> mp3 오디오 CUT 시작")
-    # 원본 강의 mp3 파일을 전환 시간에 맞추어 cut
-    audio = AudioSegment.from_mp3(audio_path)
-    time_csv = pd.read_csv(save_path)
-
-    # 디렉토리 유무 검사 및 디렉토리 생성
-    try:
-        if not os.path.exists(lec_path):  # 디렉토리 없을 시 생성
-            os.makedirs(lec_path)
-    except OSError:
-        print('Error: Creating directory. ' + lec_path)  # 디렉토리 생성 오류
-
-    for i in range(len(time_csv["time"])):
-
-        fileName = "lec_" + set_Filenum_of_Name(i + 1) + ".mp3"
-        fileName = lec_path + fileName
-
-        if i == (len(time_csv["time"]) - 1):  # 마지막 클립
-            result = audio[int(time_csv["time"][i]) * 1000:]
-            result.export(fileName, format='mp3')
-        else:  # 처음, 중간 클립
-            result = audio[int(time_csv["time"][i]) * 1000: int(time_csv["time"][i + 1]) * 1000]
-            result.export(fileName, format='mp3')
-
-        print(">>> >>>", i + 1, "번째 클립 mp3 파일 생성 완료")
-
-    print("\n[lec 생성 종료] mp3 파일 변환 및 mp3 파일 CUT을 종료합니다")
-
-
 # 동영상 내 화면 전환이 발생하는 시점을 기준으로 원본 강의 동영상 파일을 자르는 함수
 def cut_lecture_mp4(video_path, save_path, lecture_trim_path):
     print("\n[lec mp4 CUT 시작] 원본 강의의 mp4 파일 CUT을 시작합니다")
@@ -611,8 +569,8 @@ def cut_lecture_mp4(video_path, save_path, lecture_trim_path):
     print("\n[lec mp4 CUT 시작] 원본 강의의 mp4 파일 CUT을 종료합니다")
 
 
-def mixTime(default_path, save_path, tts_path, lec_path):
-    # 0816 수정
+def mixTime(default_path, save_path, tts_path, lecture_trim_path):
+
     # slide에서 숫자만 떼놓는 부분
     data_pd = pd.read_csv(save_path, header=None, index_col=None, names=None)
     data_np = pd.DataFrame.to_numpy(data_pd)
@@ -631,8 +589,8 @@ def mixTime(default_path, save_path, tts_path, lec_path):
     tts_list = [tts_file for tts_file in tts_list if tts_file.endswith(".mp3")]  # tts 가져오기
     tts_list.sort()
 
-    lec_list = os.listdir(lec_path)
-    lec_list = [lec_file for lec_file in lec_list if lec_file.endswith(".mp3")]  # lec 가져오기
+    lec_list = os.listdir(lecture_trim_path)
+    lec_list = [lec_file for lec_file in lec_list if lec_file.endswith(".mp4")]  # lec 가져오기
     lec_list.sort()
 
     mix_time = 0.0
@@ -640,7 +598,7 @@ def mixTime(default_path, save_path, tts_path, lec_path):
 
     for i, j in zip(range(len(time_csv["slide"]) - 1), data_list):
         tts_list[i] = MP3(default_path + "tts/" + "tts_" + j + ".mp3").info.length
-        lec_list[i] = MP3(default_path + "lec/" + "lec_" + set_Filenum_of_Name(i + 1) + ".mp3").info.length
+        lec_list[i] = MP4(default_path + "lecture_trim/" + "lec_" + set_Filenum_of_Name(i + 1) + ".mp4").info.length
 
         mix_time = mix_time + tts_list[i] + lec_list[i]
         mix_time_list.append(mix_time)
@@ -650,11 +608,7 @@ def mixTime(default_path, save_path, tts_path, lec_path):
     return mix_time_list
 
 
-def tts_img_mix(default_path, save_path, tts_path, slide_path):
-    tts_img_path = default_path + "tts_img/"
-    df = pd.DataFrame()
-    img_time_list = []
-    time_csv = pd.read_csv(save_path)
+def tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path):
 
     # 디렉토리 유무 검사 및 디렉토리 생성
     try:
@@ -663,18 +617,25 @@ def tts_img_mix(default_path, save_path, tts_path, slide_path):
     except OSError:
         print('Error: Creating directory. ' + tts_img_path)  # 디렉토리 생성 오류
 
+    time_csv = pd.read_csv(save_path)
+
+    capture_img_list = os.listdir(capture_FA_path)
+    capture_img_list = [img_file for img_file in capture_img_list if img_file.endswith(".jpg")]  # jpg 파일 가져오기
+    capture_img_list.sort()
+
+    print(capture_img_list)
+
     j=1
-    for i in time_csv["slide"]:
-        print(i)
-        numbers = re.sub(r'[^0-9]', '', i)
-        # numbers = '0' + numbers
+    for idx, value in enumerate(time_csv["slide"]):
+        print(value)
+        numbers = re.sub(r'[^0-9]', '', value)
         tts_file = "tts_" + numbers + ".mp3"
         print(tts_file)
 
         tts = AudioFileClip(tts_path + tts_file)
-        video = ImageClip(slide_path + i, duration=tts.duration)
+        video = ImageClip(capture_FA_path + capture_img_list[idx], duration=tts.duration)
         video = video.set_audio(tts)
-        video.write_videofile(tts_img_path + "/tts_img_" + set_Filenum_of_Name(j) + ".mp4",fps=24, codec="mpeg4")
+        video.write_videofile(tts_img_path + "/tts_img_" + set_Filenum_of_Name(j) + ".mp4", fps=24, codec="mpeg4")
         j+=1
 
 
@@ -698,14 +659,13 @@ def execute_preprocess(default_path):
     # 경로 설정 (경로 내에 한글 디렉토리 및 한글 파일이 있으면 제대로 동작하지 않음 유의 !!!!!)
     pdf_path = default_path + "lecture_doc.pdf"
     video_path = default_path + "lecture_video.mp4"
-    audio_path = default_path + "lecture_audio.mp3"
+
     capture_path = default_path + "capture/"
     capture_FA_path = default_path + "capture_FA/"
     slide_path = default_path + "slide/"
     txt_path = default_path + "txt/"
     tts_path = default_path + "tts/"
-    mix_path = default_path + "mix/"
-    lec_path = default_path + "lec/"
+    tts_img_path = default_path + "tts_img/"
     lecture_trim_path = default_path + "lecture_trim/"
     img_path = default_path + "img/"
 
@@ -713,8 +673,8 @@ def execute_preprocess(default_path):
     df = pd.DataFrame()
     save_path = default_path + "transform_timeline_result.csv"
 
-    time_list = []  # pdf 2 image, 장면 추출 시간, OCR 시간, ORB 유사도 시간
-    total_start = time.time()
+    time_list = []  # 구간 별 소요 시간을 저장할 리스트
+    total_start = time.time()  # 총 소요 시간 측정 시작
 
     # PDF to Image
     tmp_start = time.time()
@@ -766,24 +726,22 @@ def execute_preprocess(default_path):
 
     # 원본 강의 영상을 전환 시점에 맞추어 cut
     tmp_start = time.time()
-    cutLectureMp3(video_path, audio_path, save_path, lec_path) # mp4 > mp3 cut (추후 지워야 할 부분)
-    cut_lecture_mp4(video_path, save_path, lecture_trim_path) # mp4 cut
+    cut_lecture_mp4(video_path, save_path, lecture_trim_path)  # mp4 cut
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
 
     # mix time csv에 기록
     tmp_start = time.time()
-    df['mix_time'] = mixTime(default_path, save_path, tts_path, lec_path)
-    df.to_csv(save_path, mode='w')
-
+    df['mix_time'] = mixTime(default_path, save_path, tts_path, lecture_trim_path)
+    df.to_csv(save_path, mode='w') # csv 파일 저장
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
 
     # tts와 img 합쳐서 새로운 mp4 파일 생성
     tmp_start = time.time()
-    tts_img_mix(default_path, save_path, tts_path, slide_path)
+    tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path)
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
@@ -804,7 +762,7 @@ def execute_preprocess(default_path):
     print("■ PDF to TXT 시간:", time_list[2])
     print("■ 이미지 유사도 매칭 시간:", time_list[3])
     print("■ TTS 시간:", time_list[4])
-    print("■ mp3 변환 및 CUT 시간:", time_list[5])
+    print("■ mp4 CUT 시간:", time_list[5])
     print("■ 새로운 mp4 영상 생성 시간:", time_list[6])
     print("■ 최종 통합된 텍스트 파일 생성 시간:", time_list[7])
     print("■□■ 총 소요 시간:", total_times[0])

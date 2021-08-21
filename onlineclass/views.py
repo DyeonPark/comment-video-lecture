@@ -1,3 +1,5 @@
+import os
+
 from upload.models import Document
 from onlineclass.models import Helper
 
@@ -18,7 +20,7 @@ def download_pdf(request, doc_id):
     print(set_filename)
 
     response = FileResponse(fs.open(file_path, 'rb'))
-    response['Content-Disposition'] = 'attachment; filename=' + set_filename  # !!! 파일명 지정이 안되는 오류 발생 !!!
+    response['Content-Disposition'] = 'attachment; filename=%s' %set_filename  # !!! 파일명 지정이 안되는 오류 발생 !!!
     return response
 
 
@@ -46,5 +48,5 @@ def download_txt(request, doc_id):
     print(set_filename)
 
     response = FileResponse(fs.open(file_path, 'rb'))
-    response['Content-Disposition'] = 'attachment; filename=' + set_filename  # !!! 파일명 지정이 안되는 오류 발생 !!!
+    response['Content-Disposition'] = 'attachment; filename=%s' %set_filename  # !!! 파일명 지정이 안되는 오류 발생 !!!
     return response
