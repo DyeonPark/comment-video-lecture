@@ -153,10 +153,12 @@
       read_buffer.SheetNames.forEach(function(sheetName){
         var rowdata =XLSX.utils.sheet_to_json(read_buffer.Sheets[sheetName]);
         objKeyArr = Object.keys(rowdata);
+        var title_list = [];
 
         for(C = 0; C < objKeyArr.length; ++C) {
           console.log("time : "+ JSON.stringify(rowdata[C].mix_time));
           arr[C] = JSON.stringify(rowdata[C].mix_time);
+          title_list.push(JSON.stringify(rowdata[C].slide_title));
         }
         for(B = 0; B < objKeyArr.length; ++B) {
 
@@ -172,9 +174,13 @@
           li.setAttribute('onkeypress',"JavaScript:press(this.form)")
 
           // 2-3. li에 text node 추가
-          const textNode = document.createTextNode(B+1+"번 슬라이드 : "
-              + Math.round(arr[B]/60) + "분 " + Math.round(arr[B]%60) + "초");
+          const textNode = document.createTextNode(B+1+"번 슬라이드 : " + Math.round(arr[B]/60) + "분 " + Math.round(arr[B]%60) + "초");
+          const lb1=document.createElement("BR");
+          const textNode2 = document.createTextNode(title_list[B]);
+
           li.appendChild(textNode);
+          li.appendChild(lb1);
+          li.appendChild(textNode2);
 
           // 3. 생성된 li를 ol에 추가
           document

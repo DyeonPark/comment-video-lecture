@@ -639,6 +639,28 @@ def tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path):
         j+=1
 
 
+def make_slide_title_col(save_path, txt_path):
+    txt_file_list = os.listdir(txt_path)
+    txt_file_list = [txt_file for txt_file in txt_file_list if txt_file.endswith(".txt")]  # txt 파일 가져오기
+    txt_file_list.sort()
+
+    df = pd.read_csv(save_path)
+    slide_list = df["slide"]
+
+    slide_title_list = []
+
+    for slide in slide_list:
+        slide_num = slide[-8:-4]  # 슬라이드 번호 가져오기
+        txt_file = txt_file_list[int(slide_num) - 1]  # 슬라이드 번호에 맞는 텍스트 파일 가져오기
+        file = open(txt_path + txt_file, 'rt', encoding='UTF8')  # 텍스트 파일 열기
+        lines = file.readlines()  # 텍스트 파일을 줄 단위로 읽기
+
+        print(">>> >>>", slide, "의 타이틀을 받아오고 있습니다 :", lines[1][:-1])
+        slide_title_list.append(lines[1][:-1])  # 개행 문자를 제외하고 타이틀 받아오기
+
+    return slide_title_list
+
+
 def combine_txt(txt_path):
     txt_file_list = os.listdir(txt_path)
     txt_file_list = [txt_file for txt_file in txt_file_list if txt_file.endswith(".txt")]  # txt 파일 가져오기
@@ -648,7 +670,7 @@ def combine_txt(txt_path):
 
     for txt_file in txt_file_list:
         file = open(txt_path + txt_file, 'rt', encoding='UTF8')
-        data = file.read()
+        data = file.read() #파일 통채로 읽기
         final_file.write(data + "\n")
 
     final_file.close()
@@ -734,7 +756,7 @@ def execute_preprocess(default_path):
     # mix time csv에 기록
     tmp_start = time.time()
     df['mix_time'] = mixTime(default_path, save_path, tts_path, lecture_trim_path)
-    df.to_csv(save_path, mode='w') # csv 파일 저장
+    df.to_csv(save_path, mode='w')  # csv 파일 저장
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
@@ -742,6 +764,14 @@ def execute_preprocess(default_path):
     # tts와 img 합쳐서 새로운 mp4 파일 생성
     tmp_start = time.time()
     tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path)
+    tmp_sec = time.time() - tmp_start
+    tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
+    time_list.append(tmp_times[0])
+
+    # 새로운 열 (슬라이드 타이틀 리스트) 생성
+    tmp_start = time.time()
+    df['slide_title'] = make_slide_title_col(save_path, txt_path)
+    df.to_csv(save_path, mode='w')  # csv 파일 저장
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
     time_list.append(tmp_times[0])
@@ -763,6 +793,8 @@ def execute_preprocess(default_path):
     print("■ 이미지 유사도 매칭 시간:", time_list[3])
     print("■ TTS 시간:", time_list[4])
     print("■ mp4 CUT 시간:", time_list[5])
-    print("■ 새로운 mp4 영상 생성 시간:", time_list[6])
-    print("■ 최종 통합된 텍스트 파일 생성 시간:", time_list[7])
+    print("■ mix Time 새로운 열 기록:", time_list[6])
+    print("■ 새로운 mp4 영상 생성 시간:", time_list[7])
+    print("■ slide Title 새로운 열 기록:", time_list[8])
+    print("■ 최종 통합된 텍스트 파일 생성 시간:", time_list[9])
     print("■□■ 총 소요 시간:", total_times[0])
