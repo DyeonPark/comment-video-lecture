@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 
 from upload.models import Document
 from onlineclass.models import Helper
@@ -21,16 +22,19 @@ def show_origianl_video(request, doc_id):
     return HttpResponse(template.render(context, request))
 
 def download_pdf(request, doc_id):
+
     doc = Document.objects.get(id=doc_id)
 
     file_path = doc.docFile.path
     fs = FileSystemStorage(file_path)
 
     set_filename = doc.title + " 강의자료.pdf"  # 파일명 지정
-    print(set_filename)
+    tmp = str(set_filename)
+    print(tmp)
 
     response = FileResponse(fs.open(file_path, 'rb'))
-    response['Content-Disposition'] = 'attachment; filename=%s' %set_filename  # !!! 파일명 지정이 안되는 오류 발생 !!!
+    filename_header = 'filename*=UTF-8\'\'%s' % urllib.parse.quote(tmp.encode('utf-8'))
+    response['Content-Disposition'] = 'attachment;' + filename_header
     return response
 
 
@@ -55,8 +59,11 @@ def download_txt(request, doc_id):
     fs = FileSystemStorage(file_path)
 
     set_filename = doc.title + " 강의자료 해설파일.txt"  # 파일명 지정
+    tmp = str(set_filename)
     print(set_filename)
 
     response = FileResponse(fs.open(file_path, 'rb'))
-    response['Content-Disposition'] = 'attachment; filename=%s' %set_filename  # !!! 파일명 지정이 안되는 오류 발생 !!!
+    filename_header = 'filename*=UTF-8\'\'%s' % urllib.parse.quote(tmp.encode('utf-8'))
+    response['Content-Disposition'] = 'attachment;' + filename_header
+
     return response

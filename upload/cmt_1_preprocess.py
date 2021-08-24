@@ -50,7 +50,7 @@ from moviepy.editor import *
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 pdf2image_module_path = "D:/commentor/upload/Release-21.03.0/poppler-21.03.0/Library/bin/"  # 환경세팅마다 바꾸어주어야함!! 주의!!
-warnings.filterwarnings(action='ignore') #경고 무시
+warnings.filterwarnings(action='ignore')  # 경고 무시
 
 
 # 의도한바와 같이 정렬될 수 있도록 파일번호 수정하여 반환하는 함수 (최대 9999장까지 가능)
@@ -570,7 +570,6 @@ def cut_lecture_mp4(video_path, save_path, lecture_trim_path):
 
 
 def mixTime(default_path, save_path, tts_path, lecture_trim_path):
-
     # slide에서 숫자만 떼놓는 부분
     data_pd = pd.read_csv(save_path, header=None, index_col=None, names=None)
     data_np = pd.DataFrame.to_numpy(data_pd)
@@ -608,8 +607,40 @@ def mixTime(default_path, save_path, tts_path, lecture_trim_path):
     return mix_time_list
 
 
-def tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path):
+def lec_by_slide_time(default_path, save_path, tts_path, lecture_trim_path):
+    # slide에서 숫자만 떼놓는 부분
+    data_pd = pd.read_csv(save_path, header=None, index_col=None, names=None)
+    data_np = pd.DataFrame.to_numpy(data_pd)
+    data_string = ""
+    data_list = []
+    for i in data_np[1:, 2]:
+        data_string = i
+        numbers = re.sub(r'[^0-9]', '', data_string)
+        data_list.append(numbers)
 
+    lec_by_slide_time_list = []
+    time_csv = pd.read_csv(save_path)
+
+    tts_list = os.listdir(tts_path)
+    tts_list = [tts_file for tts_file in tts_list if tts_file.endswith(".mp3")]  # tts 가져오기
+    tts_list.sort()
+
+    mix_time_list = []
+    mix_time_list = time_csv['mix_time']
+
+    for i, j in zip(range(len(time_csv["slide"])), data_list):
+        tts_list[i] = MP3(default_path + "tts/" + "tts_" + j + ".mp3").info.length
+
+        lec_by_slide_time = tts_list[i] + mix_time_list[i]
+
+        lec_by_slide_time_list.append(lec_by_slide_time)
+
+        print(set_Filenum_of_Name(i + 1) + "번째 mix_time+tts lec by slide time csv에 기록 완료\n")
+
+    return lec_by_slide_time_list
+
+
+def tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path):
     # 디렉토리 유무 검사 및 디렉토리 생성
     try:
         if not os.path.exists(tts_img_path):  # 디렉토리 없을 시 생성
@@ -625,7 +656,7 @@ def tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path):
 
     print(capture_img_list)
 
-    j=1
+    j = 1
     for idx, value in enumerate(time_csv["slide"]):
         print(value)
         numbers = re.sub(r'[^0-9]', '', value)
@@ -636,7 +667,7 @@ def tts_img_mix(save_path, tts_path, capture_FA_path, tts_img_path):
         video = ImageClip(capture_FA_path + capture_img_list[idx], duration=tts.duration)
         video = video.set_audio(tts)
         video.write_videofile(tts_img_path + "/tts_img_" + set_Filenum_of_Name(j) + ".mp4", fps=24, codec="mpeg4")
-        j+=1
+        j += 1
 
 
 def make_slide_title_col(save_path, txt_path):
@@ -670,7 +701,7 @@ def combine_txt(txt_path):
 
     for txt_file in txt_file_list:
         file = open(txt_path + txt_file, 'rt', encoding='UTF8')
-        data = file.read() #파일 통채로 읽기
+        data = file.read()  # 파일 통채로 읽기
         final_file.write(data + "\n")
 
     final_file.close()
@@ -681,7 +712,6 @@ def execute_preprocess(default_path):
     # 경로 설정 (경로 내에 한글 디렉토리 및 한글 파일이 있으면 제대로 동작하지 않음 유의 !!!!!)
     pdf_path = default_path + "lecture_doc.pdf"
     video_path = default_path + "lecture_video.mp4"
-
     capture_path = default_path + "capture/"
     capture_FA_path = default_path + "capture_FA/"
     slide_path = default_path + "slide/"
@@ -756,6 +786,14 @@ def execute_preprocess(default_path):
     # mix time csv에 기록
     tmp_start = time.time()
     df['mix_time'] = mixTime(default_path, save_path, tts_path, lecture_trim_path)
+    df.to_csv(save_path, mode='w')  # csv 파일 저장
+    tmp_sec = time.time() - tmp_start
+    tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
+    time_list.append(tmp_times[0])
+
+    # lec_by_slide time csv에 기록
+    tmp_start = time.time()
+    df['lec_by_slide_time'] = lec_by_slide_time(default_path, save_path, tts_path, lecture_trim_path)
     df.to_csv(save_path, mode='w')  # csv 파일 저장
     tmp_sec = time.time() - tmp_start
     tmp_times = str(datetime.timedelta(seconds=tmp_sec)).split(".")
