@@ -25,20 +25,19 @@
     <section>
         <video src={{ helper.helper_video.url }} id="myVideo" controls loop preload></video><br/>
         <div class="butt">
-            <button id="prevSlide" title="이전 슬라이드 버튼">|◀◀ 이전 슬라이드</button>
-            <button id="prevPlay" title="6초 전 버튼"><i class="fas fa-undo"></i> 6초 전</button>
-            <button id="videoPlay" title="재생 버튼">재생 ▶</button>
-            <button id="videoStop" title="일시정지 버튼">일시정지 ||</button>
-            <button id="nextPlay" title="6초 후 버튼">6초 후 <i class="fas fa-redo"></i></button>
-            <button id="nextSlide" title="다음 슬라이드 버튼">다음 슬라이드 ▶▶|</button>
+            <button id="prevSlide">|◀◀ 이전 슬라이드</button>
+            <button id="prevPlay"><i class="fas fa-undo"></i> 6초 전</button>
+            <button id="videoPlay">재생 ▶</button>
+            <button id="now_skip">현재 설명 생략 <i class="fas fa-cut"></i></button>
+            <button id="videoStop">일시정지 ||</button>
+            <button id="nextPlay">6초 후 <i class="fas fa-redo"></i></button>
+            <button id="nextSlide">다음 슬라이드 ▶▶|</button>
         </div>
     </section>
 
     <aside>
         <h1>SLIDE LIST of VIDEO</h1>
         <h3>슬라이드 번호를 클릭하면 해당 시점으로 이동합니다</h3>
-
-        <button id="now_skip"> 현재 슬라이드 설명 생략 </button>
 
         <!--재생 옵션-->
         <div class="option_box">
@@ -196,7 +195,6 @@
           // 2. 추가할 li element 생성
           // 2-1. 추가할 li element 생성
           const li = document.createElement("li");
-          //const li = document.createElement("button");
 
 
           // 2-2. li에 id 속성 추가
