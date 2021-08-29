@@ -43,17 +43,17 @@
         <div class="option_box">
             <div class="option_box_title">VIDEO SPEED CONTROL OPTIONS</div>
             <form method="get" action="form-action.html">
-                <label><input type="radio" name="speed_opt" value="1.0" title="1.0배 속도조절 버튼" checked="checked">x1.0</label>
-                <label><input type="radio" name="speed_opt" value="1.2" title="1.2배 속도조절 버튼" >x1.2</label>
-                <label><input type="radio" name="speed_opt" value="1.4" title="1.4배 속도조절 버튼" >x1.4</label>
-                <label><input type="radio" name="speed_opt" value="1.6" title="1.6배 속도조절 버튼" >x1.6</label>
-                <label><input type="radio" name="speed_opt" value="1.8" title="1.8배 속도조절 버튼" >x1.8</label>
-                <label><input type="radio" name="speed_opt" value="2.0" title="2.0배 속도조절 버튼" >x2.0</label>
+                <label><input type="radio" name="speed_opt" value="1.0" title="1.0배 속도조절 버튼" tabindex="1">x1.0</label>
+                <label><input type="radio" name="speed_opt" value="1.2" title="1.2배 속도조절 버튼" tabindex="2">x1.2</label>
+                <label><input type="radio" name="speed_opt" value="1.4" title="1.4배 속도조절 버튼" tabindex="3">x1.4</label>
+                <label><input type="radio" name="speed_opt" value="1.6" title="1.6배 속도조절 버튼" tabindex="4">x1.6</label>
+                <label><input type="radio" name="speed_opt" value="1.8" title="1.8배 속도조절 버튼" tabindex="5">x1.8</label>
+                <label><input type="radio" name="speed_opt" value="2.0" title="2.0배 속도조절 버튼" tabindex="6">x2.0</label>
             </form>
         </div>
 
         <!--슬라이드 목록 리스트가 생성될 공간-->
-        <ol id='fruits' tabindex="1"></ol>
+        <ol id='fruits'></ol>
     </aside>
 
     <script>
@@ -65,25 +65,29 @@
     var now_skip_array = new Array();
 
     // 키보드 조작 이벤트
-    window.onkeydown = function()	{
+    window.onkeydown = function()   {
         if(event.keyCode == 37){ //좌 - 6초 전으로 이동
             video.currentTime-=6;
         } else if(event.keyCode == 39){ //우 - 6초 후로 이동
             video.currentTime+=6;
         } else if(event.keyCode == 38){ //상 - 이전 장면으로 이동
+            event.preventDefault();
             var time_cur = video.currentTime;
             time_cur *= 1;
             for(k = 0; k < arr.length-1; k++) {
-                if(arr[k]<= time_cur && time_cur < arr[k+1]){
-                    video.currentTime = arr[k];
-                    break;
-                }
-                if(time_cur > arr[arr.length-1]){
-                    video.currentTime = arr[arr.length-1];
-                    break;
-                }
+
+              if(arr[k]<= time_cur && arr[k+1] > time_cur){
+                video.currentTime = arr[k-1];
+                break;
+              }
+              if(time_cur > arr[arr.length-1]){
+                video.currentTime = arr[arr.length-2];
+                break;
+              }
             }
+
         } else if(event.keyCode == 40){ //하 - 이후 장면으로 이동
+            event.preventDefault();
             var time_cur = video.currentTime;
             time_cur *= 1;
             for(k = 0; k < arr.length-1; k++) {
@@ -98,7 +102,31 @@
                 }
             }
         }
-    };
+        else if(event.keyCode == 13){  // 엔터키 - 현재 슬라이드 생략
+                  var time_cur = video.currentTime;
+                  time_cur *= 1;
+
+                  for(k = 0; k < now_skip_array.length; k++) {
+
+                    if(time_cur <= now_skip_array[k]){
+                      video.currentTime = now_skip_array[k];
+                      console.log(video.currentTime);
+                      break;
+                    }
+                  }
+                }
+        else if(event.keyCode == 32){  // 스페이스바
+          if (video.paused) {
+            video.play();
+          }
+          else {
+            video.pause();
+            }
+
+        }
+
+      };
+
 
     //6초 전 클릭
     $("#prevPlay").on("click", function() {
@@ -126,16 +154,17 @@
       time_cur *= 1;
       for(k = 0; k < arr.length-1; k++) {
 
-        if(arr[k]<= time_cur && time_cur < arr[k+1]){
-          video.currentTime = arr[k];
+        if(arr[k]<= time_cur && arr[k+1] > time_cur){
+          video.currentTime = arr[k-1];
           break;
         }
         if(time_cur > arr[arr.length-1]){
-          video.currentTime = arr[arr.length-1];
+          video.currentTime = arr[arr.length-2];
           break;
         }
       }
     });
+
 
     //다음 슬라이드
     $("#nextSlide").on("click", function() {
@@ -160,40 +189,47 @@
 
     //현재 슬라이드 설명 생략
     $("#now_skip").on("click", function() {
-      var time_cur = video.currentTime;
-      time_cur *= 1;
+          var time_cur = video.currentTime;
+          time_cur *= 1;
 
-      for(k = 0; k < now_skip_array.length-1; k++) {
+          for(k = 0; k < now_skip_array.length; k++) {
 
-        if(time_cur <= now_skip_array[k]){
-          video.currentTime = now_skip_array[k];
-          console.log(video.currentTime);
-          break;
-        }
-        /*
-        if(time_cur > now_skip_array[now_skip_array.length-1]){
-          video.currentTime = video.duration;
-          break;
-        }
-        */
-      }
-    });
+            if(time_cur <= now_skip_array[k]){
+              video.currentTime = now_skip_array[k];
+              console.log(video.currentTime);
+              break;
+            }
+
+            if(time_cur > now_skip_array[now_skip_array.length-1]){
+              video.currentTime = video.duration;
+              break;
+            }
+
+          }
+        });
+
 
     //속도 조절을 위한 radio 버튼 클릭 이벤트
     $("input:radio[name=speed_opt]").click(function(){
 
         if($("input:radio[name=speed_opt]:checked").val()=='1.0'){
             video.playbackRate = 1.0
+
         }else if($("input:radio[name=speed_opt]:checked").val()=='1.2'){
             video.playbackRate = 1.2
+
         }else if($("input:radio[name=speed_opt]:checked").val()=='1.4'){
             video.playbackRate = 1.4
+
         }else if($("input:radio[name=speed_opt]:checked").val()=='1.6'){
             video.playbackRate = 1.6
+
         }else if($("input:radio[name=speed_opt]:checked").val()=='1.8'){
             video.playbackRate = 1.8
+
         }else{ // 2.0
             video.playbackRate = 2.0
+
         }
     });
 
@@ -233,11 +269,11 @@
 
           // 2-2. li에 id 속성 추가
           li.setAttribute('id',addValue);
-          li.setAttribute('tabindex', addValue+2);
+          li.setAttribute('tabindex', 7+B);
           li.setAttribute('onkeypress',"JavaScript:press(this.form)")
 
           // 2-3. li에 text node 추가
-          const textNode = document.createTextNode(B+1+"번 슬라이드 : " + Math.round(arr[B]/60) + "분 " + Math.round(arr[B]%60) + "초");
+          const textNode = document.createTextNode(B+1+"번 슬라이드 : " + Math.floor(arr[B]/60) + "분 " + Math.round(arr[B]%60) + "초");
           const lb1=document.createElement("BR");
           const textNode2 = document.createTextNode(title_list[B]);
 
@@ -265,8 +301,24 @@
             vid.currentTime=tt;
           }
         }
-
       });
+
+
+      $('li').on('hover focus', function() {
+        //console.log($('li').index(this)+1);
+        console.log($('li').getElementById);
+        var idd= $('li').index(this)+1;
+
+        for(A = 0; A < objKeyArr.length; ++A) {
+          if(idd == A+1) {
+            tt = Number(arr[A]);
+            tt *=1;
+            video.currentTime=tt;
+
+          }
+        }
+      });
+
     }
     </script>
 </body>
